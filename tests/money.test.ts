@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatCents, toCents } from "@/lib/money";
+import { formatCents, randsToCents, toCents } from "@/lib/money";
 
 describe("formatCents", () => {
   it("formats normal values", () => {
@@ -19,9 +19,30 @@ describe("formatCents", () => {
   });
 
   it("rejects fractions of a cent", () => {
-    expect(() => formatCents(12.5)).toThrow();
-    expect(() => formatCents(Number.NaN)).toThrow();
+    expect(() => formatCents(1.5)).toThrowError("Invalid amount");
+    expect(() => formatCents(Number.NaN)).toThrowError("Invalid amount");
   });
+});
+
+describe("randsToCents", () => {
+  it.each([
+    ["35", 3500],
+    ["35.5", 3550],
+    ["35.50", 3550],
+    [35, 3500],
+    [35.5, 3550],
+    [19.99, 1999],
+    ["0.1", 10],
+  ])("converts %s to whole cents", (input, expected) => {
+    expect(randsToCents(input)).toBe(expected);
+  });
+
+  it.each(["1.005", "-5", "0", "abc", ""])(
+    "rejects invalid amount %j",
+    (input) => {
+      expect(() => randsToCents(input)).toThrowError("Invalid amount");
+    },
+  );
 });
 
 describe("toCents", () => {
