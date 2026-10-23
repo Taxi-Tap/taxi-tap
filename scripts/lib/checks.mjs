@@ -4,7 +4,13 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
+import dns from "node:dns";
+import net from "node:net";
 import path from "node:path";
+
+// Avoid random ETIMEDOUT to Neon when IPv6 is slow (see db/index.ts).
+dns.setDefaultResultOrder("ipv4first");
+net.setDefaultAutoSelectFamilyAttemptTimeout(2000);
 
 export const ROOT = process.cwd();
 const p = (...parts) => path.join(ROOT, ...parts);

@@ -1,5 +1,11 @@
 import { defineConfig } from "drizzle-kit";
 import { existsSync } from "node:fs";
+import dns from "node:dns";
+import net from "node:net";
+
+// Avoid random ETIMEDOUT to Neon when IPv6 is slow (see db/index.ts).
+dns.setDefaultResultOrder("ipv4first");
+net.setDefaultAutoSelectFamilyAttemptTimeout(2000);
 
 // Load .env.local without extra packages (Node 22).
 if (existsSync(".env.local")) process.loadEnvFile(".env.local");

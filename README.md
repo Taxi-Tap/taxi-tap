@@ -43,7 +43,7 @@ Taxi Tap is a phone-first web app that gives commuters one digital wallet for mi
 | --- | --- |
 | `app/(auth)`, `app/(customer)`, `app/(merchant)` | Chris |
 | `app/(reader)`, `components/qr`, `server/qr.ts` | Chris |
-| `db/schema.ts`, `drizzle/` | Chris |
+| `db/schema.ts`, `drizzle/` | Everyone (schema changes and migrations go through a PR); ERD: Chris |
 | `components/nfc`, `lib/nfc.ts` | Londa |
 | other `server/` actions, `scripts/seed.ts` | Londa |
 | `app/(owner)`, `components/maps`, `components/ui` | Lethu |
