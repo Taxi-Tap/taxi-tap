@@ -3,12 +3,28 @@
 
 /** 1250 -> "R12.50", -500 -> "-R5.00". Throws if cents is not a whole number. */
 export function formatCents(cents: number): string {
-  if (!Number.isSafeInteger(cents)) throw new Error(`Amount must be whole cents, got ${cents}`);
+  if (!Number.isSafeInteger(cents)) throw new Error("Invalid amount");
   const sign = cents < 0 ? "-" : "";
   const abs = Math.abs(cents);
   const rands = Math.floor(abs / 100);
   const rest = String(abs % 100).padStart(2, "0");
   return `${sign}R${rands}.${rest}`;
+}
+
+export function randsToCents(input: string | number): number {
+  const value = String(input).trim();
+  const match = /^(\d+)(?:\.(\d{1,2}))?$/.exec(value);
+  if (!match) throw new Error("Invalid amount");
+
+  const wholeRands = BigInt(match[1]);
+  const fractionalCents = BigInt((match[2] ?? "").padEnd(2, "0") || "0");
+  const cents = wholeRands * BigInt(100) + fractionalCents;
+
+  if (cents <= BigInt(0) || cents > BigInt(Number.MAX_SAFE_INTEGER)) {
+    throw new Error("Invalid amount");
+  }
+
+  return Number(cents);
 }
 
 /**
