@@ -1,5 +1,5 @@
-import { PlaceholderPage } from "@/components/placeholder-page";
+import { RolePlaceholder } from "@/components/auth/role-layout";
 
-export default function WalletPage() {
-  return <PlaceholderPage title="Wallet" description="Your balance and top-ups (simulated funds)." />;
+export default async function WalletPage() {
+  return <RolePlaceholder role="customer" heading="Your wallet" />;
 }

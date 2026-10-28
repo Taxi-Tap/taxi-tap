@@ -1,5 +1,5 @@
-import { PlaceholderPage } from "@/components/placeholder-page";
+import { RolePlaceholder } from "@/components/auth/role-layout";
 
-export default function TripPage() {
-  return <PlaceholderPage title="Trip" description="Start a trip and see who has paid." />;
+export default async function TripPage() {
+  return <RolePlaceholder role="driver" heading="Your trip" />;
 }

@@ -1,5 +1,5 @@
-import { PlaceholderPage } from "@/components/placeholder-page";
+import { RolePlaceholder } from "@/components/auth/role-layout";
 
-export default function DashboardPage() {
-  return <PlaceholderPage title="Dashboard" description="Takings per vehicle and route." />;
+export default async function DashboardPage() {
+  return <RolePlaceholder role="owner" heading="Business dashboard" />;
 }

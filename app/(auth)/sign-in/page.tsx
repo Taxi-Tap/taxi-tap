@@ -1,5 +1,5 @@
-import { PlaceholderPage } from "@/components/placeholder-page";
+import { SignInForm } from "@/components/auth/sign-in-form";
 
 export default function SignInPage() {
-  return <PlaceholderPage title="Sign in" description="Sign in with your email and password." />;
+  return <SignInForm />;
 }
