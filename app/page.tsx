@@ -7,7 +7,7 @@ import { BusFront, ChevronRight, LayoutDashboard, LogOut, Store, UserRound, Wall
 type Role = "customer" | "merchant" | "owner";
 type Session = { role: Role; email: string };
 const workspaces = {
-  customer: [{ href: "/wallet", title: "My wallet", description: "View your balance and taxi fare activity.", icon: WalletCards }],
+  customer: [{ href: "/wallet", title: "My wallet", description: "View your balance and taxi fare activity.", icon: WalletCards }, { href: "/pay", title: "Pay a taxi fare", description: "Simulate a QR scan or NFC tap using demo funds.", icon: WalletCards }],
   merchant: [{ href: "/request", title: "Request payment", description: "Request and review customer payments.", icon: Store }],
   owner: [{ href: "/dashboard", title: "Association dashboard", description: "Manage association and operations.", icon: LayoutDashboard }, { href: "/trip", title: "Driver trip reader", description: "Explore trip and fare recording.", icon: BusFront }],
 };
