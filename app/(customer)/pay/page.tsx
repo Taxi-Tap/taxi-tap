@@ -1,10 +1,30 @@
-"use client";
-/* eslint-disable react-hooks/set-state-in-effect -- Demo wallet balance is hydrated from browser-only localStorage after mount. */
 import Link from "next/link";
-import {useEffect,useState} from "react";
-import {ArrowLeft,CheckCircle2,QrCode,Smartphone,WalletCards} from "lucide-react";
-type Tx={id:number;title:string;detail:string;amount:number;fee:number;timestamp:string};
-const KEY="taxi-tap-demo-wallet-v1";const money=(n:number)=>new Intl.NumberFormat("en-ZA",{style:"currency",currency:"ZAR"}).format(n);
-export default function PayPage(){const [balance,setBalance]=useState(332);const [fare,setFare]=useState("18");const [method,setMethod]=useState<"QR"|"NFC">("QR");const [notice,setNotice]=useState("");useEffect(()=>{try{const x=localStorage.getItem(KEY);if(x){const d=JSON.parse(x);if(typeof d.balance==="number")setBalance(d.balance);}}catch{}},[]);
-function pay(){const n=Number(fare);if(!Number.isFinite(n)||n<=0){setNotice("Enter a valid fare.");return;}if(n>balance){setNotice("Insufficient demo funds. Top up your wallet first.");return;}try{const x=localStorage.getItem(KEY);const d=x?JSON.parse(x):{};const tx:Tx={id:Date.now(),title:"Taxi fare",detail:"Simulated "+method+" payment",amount:-n,fee:Number((n*.06).toFixed(2)),timestamp:new Date().toISOString()};const next=balance-n;localStorage.setItem(KEY,JSON.stringify({balance:next,activity:[tx,...(Array.isArray(d.activity)?d.activity:[])]}));setBalance(next);setNotice("Demo payment of "+money(n)+" completed via "+method+". No real money moved.");}catch{setNotice("Could not save the demo payment.");}}
-return <main className="min-h-screen bg-slate-50 text-slate-900"><header className="border-b bg-white"><div className="mx-auto flex h-16 max-w-4xl items-center justify-between px-4"><Link href="/" className="flex items-center gap-2 text-sm text-slate-600"><ArrowLeft className="size-4"/>Home</Link><span className="flex items-center gap-2 font-semibold text-[#102a43]"><WalletCards className="size-5"/>Pay taxi fare</span><Link href="/profile" className="text-sm">Profile</Link></div></header><div className="mx-auto max-w-4xl px-4 py-7"><p className="text-sm font-medium text-teal-700">CUSTOMER WORKSPACE</p><h1 className="mt-1 text-2xl font-semibold">Pay a taxi fare</h1><p className="mt-2 text-sm text-slate-600">Try a simulated QR scan or NFC tap.</p><section className="mt-5 rounded-xl bg-[#102a43] p-5 text-white"><p className="text-sm text-slate-300">Available demo balance</p><p className="mt-2 text-3xl font-semibold">{money(balance)}</p><Link href="/wallet" className="mt-3 inline-block text-sm underline">Wallet and transaction history</Link></section><div className="mt-5 grid gap-5 md:grid-cols-2"><section className="rounded-xl border bg-white p-5"><h2 className="font-semibold">Payment details</h2><label className="mt-4 block text-sm font-medium">Fare (ZAR)</label><input type="number" min=".01" step=".01" value={fare} onChange={e=>setFare(e.target.value)} className="mt-1 min-h-11 w-full rounded-lg border px-3"/><div className="mt-4 grid grid-cols-2 gap-2"><button onClick={()=>setMethod("QR")} className={`rounded-lg border p-3 text-sm ${method==="QR"?"border-teal-700 bg-teal-50":"border-slate-200"}`}><QrCode className="mr-2 inline size-4"/>QR scan</button><button onClick={()=>setMethod("NFC")} className={`rounded-lg border p-3 text-sm ${method==="NFC"?"border-teal-700 bg-teal-50":"border-slate-200"}`}><Smartphone className="mr-2 inline size-4"/>NFC tap</button></div><button onClick={pay} className="mt-4 min-h-11 w-full rounded-lg bg-[#102a43] text-sm font-semibold text-white">Simulate payment</button>{notice&&<p role="status" className="mt-3 flex gap-2 rounded-lg bg-teal-50 p-3 text-sm text-teal-900"><CheckCircle2 className="size-4 shrink-0"/>{notice}</p>}</section><section className="rounded-xl border bg-white p-5"><h2 className="font-semibold">Demo reader</h2><div className="mt-4 flex items-start gap-3"><QrCode className="size-5 text-teal-700"/><div><p className="text-sm font-medium">QR scanner simulation</p><p className="mt-1 text-sm text-slate-500">Mimics scanning a taxi payment code without accessing a camera.</p></div></div><div className="mt-4 flex items-start gap-3"><Smartphone className="size-5 text-teal-700"/><div><p className="text-sm font-medium">NFC reader simulation</p><p className="mt-1 text-sm text-slate-500">Mimics a contactless tap without NFC hardware.</p></div></div><p className="mt-5 rounded-lg bg-amber-50 p-3 text-xs text-amber-900">Browser-only demo. No real payment is processed.</p></section></div></div></main>}
+import { QrCode, Smartphone } from "lucide-react";
+import { AppHeader } from "@/components/personal/app-header";
+import { cn } from "@/lib/utils";
+
+// Pay: choose Tap (NFC) or QR scan. A destination picked on Home (?band= or ?shop=) is carried along.
+export default async function PayPage({ searchParams }: { searchParams: Promise<{ band?: string; shop?: string }> }) {
+  const { band, shop } = await searchParams;
+  const qs = new URLSearchParams();
+  if (band) qs.set("band", band);
+  if (shop) qs.set("shop", shop);
+  const suffix = qs.size ? `?${qs}` : "";
+  const tile = "flex aspect-square w-48 flex-col items-center justify-center gap-3 rounded-[2rem] border text-sm font-bold outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
+  return (
+    <main>
+      <AppHeader title="Pay" backHref="/home" />
+      <div className="flex flex-col items-center gap-4 px-4 pt-14">
+        <p className="mb-4 text-base">Enter payment method</p>
+        <Link href={`/pay/tap${suffix}`} className={cn(tile, "border-black bg-black text-white")}>
+          <Smartphone className="size-9" aria-hidden="true" />
+          Tap
+        </Link>
+        <Link href={`/pay/scan${suffix}`} className={cn(tile, "border-foreground bg-background")}>
+          <QrCode className="size-9" aria-hidden="true" />
+          QR Scan
+        </Link>
+      </div>
+    </main>
+  );
+}

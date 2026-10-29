@@ -40,7 +40,19 @@ export const walletOwnerTypeEnum = pgEnum("wallet_owner_type", [
   "profile",
   "organisation",
 ]);
-export const txKindEnum = pgEnum("tx_kind", ["fare", "topup", "merchant"]);
+export const txKindEnum = pgEnum("tx_kind", [
+  "fare",
+  "topup",
+  "merchant",
+  "transfer",
+]);
+export const notificationKindEnum = pgEnum("notification_kind", [
+  "payment",
+  "topup",
+  "receipt",
+  "security",
+  "promo",
+]);
 export const txMethodEnum = pgEnum("tx_method", ["qr", "nfc", "simulated"]);
 export const txStatusEnum = pgEnum("tx_status", [
   "success",
@@ -57,6 +69,23 @@ export const profiles = pgTable("profiles", {
   name: text("name").notNull(),
   phone: text("phone"),
   role: roleEnum("role").default("customer").notNull(),
+  // Settings screen (personal account).
+  smsAlerts: boolean("sms_alerts").default(false).notNull(),
+  promotions: boolean("promotions").default(false).notNull(),
+  language: text("language").default("English").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Notifications screen: payment received, wallet recharged, receipt ready, security alerts.
+export const notifications = pgTable("notifications", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  profileId: uuid("profile_id")
+    .notNull()
+    .references(() => profiles.id, { onDelete: "cascade" }),
+  kind: notificationKindEnum("kind").notNull(),
+  title: text("title").notNull(),
+  body: text("body").notNull(),
+  readAt: timestamp("read_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -194,6 +223,8 @@ export const transactions = pgTable(
     status: txStatusEnum("status").default("success").notNull(),
     failureReason: text("failure_reason"),
     requestedAmount: text("requested_amount"),
+    // Optional reference typed on the Send / Transfer screens.
+    note: text("note"),
     quantity: integer("quantity").default(1).notNull(),
     tripId: uuid("trip_id").references(() => trips.id),
     fareBandId: uuid("fare_band_id").references(() => fareBands.id),

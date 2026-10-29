@@ -3,7 +3,7 @@ import { homeForRole } from "@/lib/role-routing";
 
 describe("homeForRole", () => {
   it.each([
-    ["customer", "/wallet"],
+    ["customer", "/home"],
     ["driver", "/trip"],
     ["merchant_staff", "/request"],
     ["owner", "/dashboard"],

@@ -29,6 +29,13 @@
       "when": 1793269904100,
       "tag": "0003_auth_2fa_and_org_join",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793274755801,
+      "tag": "0004_personal_account",
+      "breakpoints": true
     }
   ]
 }

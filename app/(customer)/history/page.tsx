@@ -1,5 +1,14 @@
-import { PlaceholderPage } from "@/components/placeholder-page";
+import { AppHeader } from "@/components/personal/app-header";
+import { HistoryList } from "@/components/personal/history-list";
+import { listMyTransactions } from "@/server/wallets";
 
-export default function HistoryPage() {
-  return <PlaceholderPage title="History" description="Your past fares and payments." />;
+// History: every payment, grouped by day, with Taxi / Stalls / Recharge filters (TAX-39).
+export default async function HistoryPage() {
+  const transactions = await listMyTransactions();
+  return (
+    <main>
+      <AppHeader title="History" hideBack />
+      <HistoryList transactions={transactions} />
+    </main>
+  );
 }

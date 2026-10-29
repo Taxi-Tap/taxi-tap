@@ -8,7 +8,7 @@ export type AppRole =
 export function homeForRole(role: AppRole): string {
   switch (role) {
     case "customer":
-      return "/wallet";
+      return "/home";
     case "driver":
       return "/trip";
     case "merchant_staff":

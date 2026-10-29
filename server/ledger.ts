@@ -6,7 +6,7 @@ export type TransferInput = {
   fromId: string;
   toId: string;
   amountCents: number;
-  kind: "fare" | "topup" | "merchant";
+  kind: "fare" | "topup" | "merchant" | "transfer";
   method: "qr" | "nfc" | "simulated";
   key: string;
   tripId?: string;

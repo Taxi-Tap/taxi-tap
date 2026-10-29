@@ -34,8 +34,9 @@ const ROLE_LABEL: Record<AppRole, string> = {
 
 const TOOLS: Record<AppRole, Tool[]> = {
   customer: [
-    { href: "/wallet", title: "My wallet", description: "View your balance and taxi fare activity.", icon: WalletCards },
-    { href: "/pay", title: "Pay a taxi fare", description: "Simulate a QR scan or NFC tap using demo funds.", icon: QrCode },
+    { href: "/home", title: "Home", description: "Find a taxi or shop and pay.", icon: Map },
+    { href: "/wallet", title: "My wallet", description: "View your balance and recharge.", icon: WalletCards },
+    { href: "/pay", title: "Pay", description: "Tap or scan to pay a fare.", icon: QrCode },
     { href: "/history", title: "History", description: "See your past payments.", icon: History },
   ],
   driver: [

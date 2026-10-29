@@ -22,6 +22,7 @@ export default function ProfilePage() {
 async function ProfileContent() {
   const profile = await getSignedInProfile();
   if (!profile) redirect("/sign-in");
+  if (profile.role === "customer") redirect("/account");
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) redirect("/sign-in");
 

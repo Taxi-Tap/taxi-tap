@@ -30,7 +30,7 @@ import {
 /** Where the emailed reset link sends the user: the screen that calls resetPassword(). */
 const RESET_PASSWORD_PAGE = "/reset-password";
 /** Where Google sends the user back to after they approve. */
-const AFTER_GOOGLE_SIGN_IN = "/wallet";
+const AFTER_GOOGLE_SIGN_IN = "/home";
 
 function failure(err: unknown): AuthResult {
   if (err instanceof APIError) {
