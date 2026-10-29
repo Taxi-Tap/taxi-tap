@@ -41,7 +41,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     }
 
     const expectedRole =
-      pathname.startsWith("/wallet") ? "customer" :
+      pathname.startsWith("/wallet") || pathname.startsWith("/pay") ? "customer" :
       pathname.startsWith("/request") ? "merchant" :
       pathname.startsWith("/dashboard") || pathname.startsWith("/trip") ? "owner" :
       pathname.startsWith("/profile") ? null : null;
