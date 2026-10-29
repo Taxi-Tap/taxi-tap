@@ -15,10 +15,12 @@ export default function RequestPage() {
  const [notice,setNotice]=useState("");
  const [scanner,setScanner]=useState(false);
  const [activeCode,setActiveCode]=useState<RequestItem|null>(null);
+ const [confirmPayment,setConfirmPayment]=useState<{item:RequestItem;method:"QR"|"NFC"}|null>(null);
  useEffect(()=>{try{const raw=localStorage.getItem(KEY);if(raw)setItems(JSON.parse(raw) as RequestItem[]);}catch{}},[]);
  function save(next:RequestItem[]){setItems(next);try{localStorage.setItem(KEY,JSON.stringify(next));}catch{}}
  function createRequest(e:React.FormEvent){e.preventDefault();const value=Number(amount);if(!Number.isFinite(value)||value<=0){setNotice("Enter an amount greater than R0.");return;}const item={id:"TT-"+Date.now().toString().slice(-7),amount:value,note:note.trim()||"Payment",status:"Pending" as const,created:new Date().toISOString()};save([item,...items]);setActiveCode(item);setNotice("Demo payment code generated. It is illustrative, not scannable by a real app.");}
- function markPaid(id:string,method:"QR"|"NFC"="QR"){const next=items.map(x=>x.id===id?{...x,status:"Paid" as const,method,paidAt:new Date().toISOString()}:x);save(next);setActiveCode(null);setNotice("Simulated "+method+" payment recorded in transaction log.");}
+ function markPaid(id:string,method:"QR"|"NFC"="QR"){const item=items.find(x=>x.id===id);if(item)setConfirmPayment({item,method});}
+ function confirmPaid(){if(!confirmPayment)return;const {item,method}=confirmPayment;const next=items.map(x=>x.id===item.id?{...x,status:"Paid" as const,method,paidAt:new Date().toISOString()}:x);save(next);setActiveCode(null);setConfirmPayment(null);setNotice("Confirmed: simulated "+method+" payment of "+money(item.amount)+" recorded in transaction log.");}
  const totalMade=items.filter(x=>x.status==="Paid").reduce((s,x)=>s+x.amount,0);
  return <main className="min-h-screen bg-slate-50 text-slate-900"><header className="border-b bg-white"><div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4"><Link href="/" className="inline-flex items-center gap-2 text-sm text-slate-600"><ArrowLeft className="size-4"/> Home</Link><div className="flex items-center gap-2 font-semibold text-[#102a43]"><Store className="size-5"/> Merchant tools</div><Link href="/profile" className="text-sm text-slate-600">Profile</Link></div></header>
  <div className="mx-auto max-w-5xl px-4 py-7"><p className="text-sm font-medium text-teal-700">MERCHANT WORKSPACE</p><h1 className="mt-1 text-2xl font-semibold">Request a payment</h1><p className="mt-2 text-sm text-slate-600">Create a demo request, then simulate a customer paying by QR or NFC.</p>
