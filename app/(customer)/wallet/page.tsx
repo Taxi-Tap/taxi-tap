@@ -39,8 +39,11 @@ export default function WalletPage() {
   const [activity, setActivity] = useState<Activity[]>([]);
   const [notice, setNotice] = useState("");
   const [ready, setReady] = useState(false);
+  const [currentMonth, setCurrentMonth] = useState("");
 
   useEffect(() => {
+    const today = new Date();
+    setCurrentMonth(`${today.getMonth()}-${today.getFullYear()}`);
     try {
       const saved = window.localStorage.getItem(STORAGE_KEY);
       if (saved) {
@@ -75,16 +78,16 @@ export default function WalletPage() {
   }, [balance, activity, ready]);
 
   const monthStats = useMemo(() => {
-    const now = new Date();
+    const [month, year] = currentMonth.split("-").map(Number);
     const thisMonth = activity.filter((item) => {
       const date = new Date(item.timestamp);
-      return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+      return date.getMonth() === month && date.getFullYear() === year;
     });
     const spent = thisMonth.reduce((sum, item) => sum + (item.amount < 0 ? Math.abs(item.amount) : 0), 0);
     const fees = thisMonth.reduce((sum, item) => sum + item.fee, 0);
     const topUps = thisMonth.reduce((sum, item) => sum + (item.amount > 0 ? item.amount : 0), 0);
     return { spent, fees, topUps };
-  }, [activity]);
+  }, [activity, currentMonth]);
 
   function addDemoFunds(amount: number) {
     const transaction: Activity = {
