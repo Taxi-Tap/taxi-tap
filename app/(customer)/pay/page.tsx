@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable react-hooks/set-state-in-effect -- Demo wallet balance is hydrated from browser-only localStorage after mount. */
 import Link from "next/link";
 import {useEffect,useState} from "react";
 import {ArrowLeft,CheckCircle2,QrCode,Smartphone,WalletCards} from "lucide-react";
