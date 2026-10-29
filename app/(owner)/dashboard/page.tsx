@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable react-hooks/set-state-in-effect -- Browser-only demo state is hydrated from localStorage after mount; sample data uses runtime timestamps. */
+
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, BusFront, CircleDollarSign, QrCode, Smartphone, TrendingUp } from "lucide-react";
