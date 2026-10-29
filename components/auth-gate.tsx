@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable react-hooks/set-state-in-effect -- Route access is initialized from browser-only demo session state after mount. */
+
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
