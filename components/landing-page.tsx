@@ -27,7 +27,7 @@ export function LandingPage() {
   const [open, setOpen] = useState(false);
 
   return (
-    <main className="min-h-screen bg-white font-[family-name:var(--font-geist-sans),ui-sans-serif,system-ui,sans-serif] text-neutral-950">
+    <main className="min-h-screen bg-white font-sans text-neutral-950">
       <header className="relative border-b border-white/20 bg-black text-white">
         <div className="mx-auto grid h-14 max-w-6xl grid-cols-[1fr_auto_1fr] items-center px-4 sm:px-6">
           <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} aria-label={open ? "Close menu" : "Open menu"} className="-ml-2 inline-flex size-10 items-center justify-center rounded-lg hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-400 justify-self-start">
