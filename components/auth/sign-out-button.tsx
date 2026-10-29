@@ -2,9 +2,17 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Loader2, LogOut } from "lucide-react";
 import { signOut } from "@/server/auth-actions";
+import { Button } from "@/components/ui/button";
 
-export function SignOutButton() {
+export function SignOutButton({
+  variant = "outline",
+  className,
+}: {
+  variant?: "outline" | "default" | "ghost";
+  className?: string;
+}) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -26,16 +34,16 @@ export function SignOutButton() {
   }
 
   return (
-    <div className="mt-8">
-      <button
-        type="button"
-        onClick={handleSignOut}
-        disabled={busy}
-        className="min-h-12 w-full rounded-xl border border-neutral-300 px-4 font-semibold text-neutral-950 hover:bg-neutral-50 disabled:opacity-60"
-      >
+    <div className={className}>
+      <Button type="button" variant={variant} onClick={handleSignOut} disabled={busy}>
+        {busy ? <Loader2 className="animate-spin" /> : <LogOut />}
         {busy ? "Signing out…" : "Sign out"}
-      </button>
-      {error ? <p role="alert" className="mt-2 text-sm text-red-700">{error}</p> : null}
+      </Button>
+      {error ? (
+        <p role="alert" className="mt-2 text-sm text-destructive">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }

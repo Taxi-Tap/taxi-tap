@@ -67,6 +67,12 @@ export const organisations = pgTable("organisations", {
   associationId: uuid("association_id").references(
     (): AnyPgColumn => organisations.id,
   ),
+  // Company info step of the business sign-up (TAX-34).
+  slug: text("slug").unique(),
+  logoUrl: text("logo_url"),
+  location: text("location"),
+  // Shown to the owner; staff type it on the "Join an existing company" screen.
+  joinCode: text("join_code").unique(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

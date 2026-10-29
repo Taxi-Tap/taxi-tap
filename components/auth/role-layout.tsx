@@ -1,16 +1,20 @@
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { getAuthProfile } from "@/app/auth-actions";
+import { LoadingScreen } from "@/components/auth/loading-screen";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { homeForRole, type AppRole } from "@/lib/role-routing";
 
-export async function RoleLayout({
-  children,
-  role,
-}: {
-  children: ReactNode;
-  role: AppRole;
-}) {
+/** Guards a role's routes. Reads the session, so it must sit inside Suspense (cacheComponents). */
+export function RoleLayout({ children, role }: { children: ReactNode; role: AppRole }) {
+  return (
+    <Suspense fallback={<LoadingScreen label="Loading…" />}>
+      <RoleGuard role={role}>{children}</RoleGuard>
+    </Suspense>
+  );
+}
+
+async function RoleGuard({ children, role }: { children: ReactNode; role: AppRole }) {
   const profile = await getAuthProfile();
   if (!profile) redirect("/sign-in");
   if (profile.role !== role) redirect(homeForRole(profile.role));

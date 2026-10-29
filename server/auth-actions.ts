@@ -7,7 +7,7 @@
 // Screen            -> action
 // Sign in           -> signIn({ email, password, rememberMe })
 // Sign in w/ Google -> signInWithGoogle()  then  window.location.href = result.url
-// Sign up           -> signUp({ name, email, password })
+// Sign up           -> app/auth-actions.ts (signUpPersonal / signUpBusiness / signUpStaff)
 // Forgot password   -> requestPasswordReset({ email })
 // New password      -> resetPassword({ token, newPassword })   (token = ?token= in the emailed link)
 // Header / guards   -> getCurrentUser(), signOut()
@@ -20,12 +20,10 @@ import {
   requestPasswordResetSchema,
   resetPasswordSchema,
   signInSchema,
-  signUpSchema,
   type AuthResult,
   type RequestPasswordResetInput,
   type ResetPasswordInput,
   type SignInInput,
-  type SignUpInput,
 } from "@/lib/auth-schemas";
 
 /** Where the emailed reset link sends the user: the screen that calls resetPassword(). */
@@ -41,6 +39,11 @@ function failure(err: unknown): AuthResult {
   return { ok: false, error: "Something went wrong. Please try again." };
 }
 
+function maskEmail(email: string) {
+  const [local, domain] = email.split("@");
+  return `${local.slice(0, 1)}${"*".repeat(Math.max(local.length - 1, 2))}@${domain}`;
+}
+
 function invalid(error: z.ZodError): AuthResult {
   return {
     ok: false,
@@ -49,27 +52,21 @@ function invalid(error: z.ZodError): AuthResult {
   };
 }
 
-/** Create an account with email + password and sign the user in. */
-export async function signUp(input: SignUpInput): Promise<AuthResult> {
-  const parsed = signUpSchema.safeParse(input);
-  if (!parsed.success) return invalid(parsed.error);
-  try {
-    await auth.api.signUpEmail({ body: parsed.data, headers: await headers() });
-    // TODO (after the profiles migration): create the user's `profiles` row and wallet here.
-    return { ok: true };
-  } catch (err) {
-    return failure(err);
-  }
-}
-
 /** Sign in with email + password. `rememberMe: false` makes it a browser-session cookie. */
 export async function signIn(input: SignInInput): Promise<AuthResult> {
   const parsed = signInSchema.safeParse(input);
   if (!parsed.success) return invalid(parsed.error);
   try {
-    await auth.api.signInEmail({ body: parsed.data, headers: await headers() });
+    const res = await auth.api.signInEmail({ body: parsed.data, headers: await headers() });
+    // With two-factor on, BetterAuth sets a short-lived cookie instead of a session.
+    if ("twoFactorRedirect" in res && res.twoFactorRedirect) {
+      return { ok: true, twoFactor: true, maskedEmail: maskEmail(parsed.data.email) };
+    }
     return { ok: true };
   } catch (err) {
+    if (err instanceof APIError && err.body?.code === "EMAIL_NOT_VERIFIED") {
+      return { ok: false, error: "Verify your email address first.", code: "EMAIL_NOT_VERIFIED" };
+    }
     return failure(err);
   }
 }
@@ -142,4 +139,19 @@ export async function getCurrentUser() {
 /** Which sign-in options exist, so the sign-in screen can hide "Sign in with Google". */
 export async function getAuthOptions() {
   return { google: googleEnabled };
+}
+
+/** Send the account-verification email again (the "Resend email" button). */
+export async function resendVerification(email: string): Promise<AuthResult> {
+  const parsed = requestPasswordResetSchema.safeParse({ email });
+  if (!parsed.success) return invalid(parsed.error);
+  try {
+    await auth.api.sendVerificationEmail({
+      body: { email: parsed.data.email, callbackURL: "/" },
+      headers: await headers(),
+    });
+    return { ok: true };
+  } catch (err) {
+    return failure(err);
+  }
 }

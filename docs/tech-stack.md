@@ -6,10 +6,11 @@
 | UI | shadcn/ui on Tailwind CSS |
 | Database | Neon Postgres. One Neon branch per developer. **No Docker.** |
 | ORM | Drizzle ORM + drizzle-kit. Driver `drizzle-orm/neon-serverless` with `ws` (the ledger needs `db.transaction`; neon-http can't do it) |
-| Auth | BetterAuth with the Drizzle adapter (`provider: "pg"`) |
+| Auth | BetterAuth with the Drizzle adapter (`provider: "pg"`): email + password, Google, email verification, emailed two-factor codes |
 | Tests | Vitest |
 | Node | 22 LTS (`.nvmrc` = `22`) |
 | Package manager | npm only, lockfile committed, installs via `npm ci` |
+| Email | Resend HTTP API when `RESEND_API_KEY` is set; otherwise messages print to the dev server console |
 | Hosting | Vercel (app) + Neon (database) |
 
 ## Boundary rules

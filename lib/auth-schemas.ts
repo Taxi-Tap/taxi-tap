@@ -39,7 +39,14 @@ export type ResetPasswordInput = z.input<typeof resetPasswordSchema>;
 /**
  * What every auth action returns, so screens can show errors without try/catch.
  * `url` is only set by signInWithGoogle: send the browser there (window.location.href = url).
+ * `twoFactor` is set by signIn when the account needs a code: go to /two-factor.
  */
 export type AuthResult =
-  | { ok: true; url?: string }
-  | { ok: false; error: string; fieldErrors?: Record<string, string[] | undefined> };
+  | { ok: true; url?: string; twoFactor?: boolean; maskedEmail?: string }
+  | {
+      ok: false;
+      error: string;
+      /** "EMAIL_NOT_VERIFIED": send the user to /verify. */
+      code?: string;
+      fieldErrors?: Record<string, string[] | undefined>;
+    };

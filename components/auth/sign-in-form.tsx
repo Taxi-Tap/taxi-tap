@@ -3,14 +3,21 @@
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 import { signIn, signInWithGoogle } from "@/server/auth-actions";
 import { getAuthProfile } from "@/app/auth-actions";
-import { AuthShell } from "@/components/auth/auth-shell";
-import { FormField, inputClassName } from "@/components/auth/form-field";
+import { AuthScreen } from "@/components/auth/auth-screen";
+import { Field, inputClass, primaryButtonClass } from "@/components/auth/field";
+import { LoadingScreen } from "@/components/auth/loading-screen";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { homeForRole } from "@/lib/role-routing";
 import { validateSignInForm } from "@/lib/auth-validation";
 
-export function SignInForm() {
+export function SignInForm({ googleEnabled = false }: { googleEnabled?: boolean }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -18,6 +25,7 @@ export function SignInForm() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -30,17 +38,28 @@ export function SignInForm() {
     try {
       const result = await signIn({ email, password, rememberMe });
       if (!result.ok) {
+        if (result.code === "EMAIL_NOT_VERIFIED") {
+          router.push(`/verify?email=${encodeURIComponent(email)}`);
+          return;
+        }
         setMessage("Email or password is incorrect. Check your details and try again.");
         return;
       }
+      if (result.twoFactor) {
+        router.push(`/two-factor?to=${encodeURIComponent(result.maskedEmail ?? "")}`);
+        return;
+      }
+      setRedirecting(true);
       const profile = await getAuthProfile();
       if (!profile) {
+        setRedirecting(false);
         setMessage("We could not load your account role. Please contact support.");
         return;
       }
       router.replace(homeForRole(profile.role));
       router.refresh();
     } catch {
+      setRedirecting(false);
       setMessage("We could not sign you in. Please try again.");
     } finally {
       setBusy(false);
@@ -64,82 +83,86 @@ export function SignInForm() {
     }
   }
 
+  if (redirecting) return <LoadingScreen />;
+
   return (
-    <AuthShell title="Welcome Back" description="Sign in to continue to Taxi Tap.">
-      <form onSubmit={handleSubmit} noValidate className="space-y-5">
-        <FormField id="email" label="Email" error={errors.email}>
-          <input
+    <AuthScreen
+      barTitle="Sign in"
+      title="Welcome Back"
+      description="Enter your email below to sign in to your account."
+      backHref="/"
+      footer={
+        <div className="space-y-4">
+          <p>
+            Don&apos;t have an account?{" "}
+            <Link href="/sign-up" className="font-semibold underline underline-offset-4">
+              Sign up
+            </Link>
+          </p>
+          <p className="text-muted-foreground">
+            By clicking sign in, you agree to our Terms &amp; Conditions and Privacy Policy.
+          </p>
+        </div>
+      }
+    >
+      <form onSubmit={handleSubmit} noValidate className="flex flex-1 flex-col gap-5">
+        <Field id="email" label="Email" error={errors.email}>
+          <Input
             id="email"
             name="email"
             type="email"
             autoComplete="email"
-            required
             value={email}
-            onChange={(event) => setEmail(event.target.value)}
+            onChange={(e) => setEmail(e.target.value)}
             aria-invalid={Boolean(errors.email)}
             aria-describedby={errors.email ? "email-error" : undefined}
-            className={inputClassName}
+            className={inputClass}
           />
-        </FormField>
-        <FormField id="password" label="Password" error={errors.password}>
-          <input
+        </Field>
+        <Field id="password" label="Password" error={errors.password}>
+          <Input
             id="password"
             name="password"
             type="password"
             autoComplete="current-password"
-            required
             value={password}
-            onChange={(event) => setPassword(event.target.value)}
+            onChange={(e) => setPassword(e.target.value)}
             aria-invalid={Boolean(errors.password)}
             aria-describedby={errors.password ? "password-error" : undefined}
-            className={inputClassName}
+            className={inputClass}
           />
-        </FormField>
-        <div className="flex min-h-12 items-center justify-between gap-3">
-          <label className="flex min-h-12 cursor-pointer items-center gap-3 text-sm text-neutral-800">
-            <input
-              type="checkbox"
-              checked={rememberMe}
-              onChange={(event) => setRememberMe(event.target.checked)}
-              className="size-5 accent-[#6D28D9]"
-            />
-            Remember me
-          </label>
-          <Link
-            href="/forgot-password"
-            className="flex min-h-12 items-center font-semibold text-[#6D28D9] underline-offset-4 hover:underline"
-          >
+        </Field>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Checkbox id="remember" checked={rememberMe} onCheckedChange={(v) => setRememberMe(v === true)} />
+            <Label htmlFor="remember" className="text-sm">
+              Remember me
+            </Label>
+          </div>
+          <Link href="/forgot-password" className="text-sm font-medium underline-offset-4 hover:underline">
             Forgot password?
           </Link>
         </div>
-        {message ? <p role="alert" className="text-sm font-medium text-red-700">{message}</p> : null}
-        <button
-          type="submit"
-          disabled={busy}
-          className="min-h-12 w-full rounded-xl bg-black px-4 font-semibold text-white hover:bg-neutral-800 disabled:opacity-60"
-        >
-          {busy ? "Signing in…" : "Sign in"}
-        </button>
-        <div className="flex items-center gap-3 text-sm text-neutral-500">
-          <span className="h-px flex-1 bg-neutral-200" />
-          <span>or</span>
-          <span className="h-px flex-1 bg-neutral-200" />
+        {message ? (
+          <Alert variant="destructive" role="alert">
+            <AlertDescription>{message}</AlertDescription>
+          </Alert>
+        ) : null}
+        <div className="mt-auto space-y-4 pt-8">
+          <Button type="submit" disabled={busy} className={primaryButtonClass}>
+            {busy ? <Loader2 className="animate-spin" /> : null}
+            {busy ? "Signing in…" : "Sign in"}
+          </Button>
+          {googleEnabled ? (
+            <>
+              <p className="text-center text-sm text-muted-foreground">Or sign in with</p>
+              <Button type="button" variant="outline" disabled={busy} onClick={handleGoogleSignIn} className={primaryButtonClass}>
+                Sign in with Google
+              </Button>
+            </>
+          ) : null}
         </div>
-        <button
-          type="button"
-          onClick={handleGoogleSignIn}
-          disabled={busy}
-          className="min-h-12 w-full rounded-xl border border-neutral-300 px-4 font-semibold text-neutral-900 hover:bg-neutral-50 disabled:opacity-60"
-        >
-          Sign in with Google
-        </button>
       </form>
-      <p className="mt-6 text-center text-sm text-neutral-700">
-        New to Taxi Tap?{" "}
-        <Link href="/sign-up" className="font-semibold text-[#6D28D9] underline-offset-4 hover:underline">
-          Create account
-        </Link>
-      </p>
-    </AuthShell>
+    </AuthScreen>
   );
 }
