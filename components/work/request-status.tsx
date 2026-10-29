@@ -7,6 +7,7 @@ import { Check, Clock, Loader2, X } from "lucide-react";
 import { cancelPaymentRequest, simulateCustomerPays } from "@/server/merchant";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { playResult } from "@/lib/feedback";
 import { rands } from "@/lib/format";
 import type { PaymentRequestView } from "@/lib/work-types";
 
@@ -16,6 +17,11 @@ export function RequestStatus({ request }: { request: PaymentRequestView }) {
   const [busy, setBusy] = useState<"cancel" | "demo" | null>(null);
   const [error, setError] = useState("");
   const pending = request.status === "pending";
+  const paid = request.status === "paid";
+
+  useEffect(() => {
+    if (paid) playResult(true);
+  }, [paid]);
 
   useEffect(() => {
     if (!pending) return;

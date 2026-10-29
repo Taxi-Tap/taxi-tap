@@ -15,3 +15,10 @@ export function newRequestCode() {
   for (let i = 0; i < 6; i++) code += CODE_ALPHABET[randomInt(CODE_ALPHABET.length)];
   return code;
 }
+
+/** An 8-character code shown under the QR so a customer can read it out, e.g. K7M2QX4P. */
+export function newQrCode() {
+  let code = "";
+  for (let i = 0; i < 8; i++) code += CODE_ALPHABET[randomInt(CODE_ALPHABET.length)];
+  return code;
+}

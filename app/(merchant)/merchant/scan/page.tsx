@@ -1,5 +1,12 @@
-import { PlaceholderPage } from "@/components/placeholder-page";
+import { AppHeader } from "@/components/personal/app-header";
+import { MerchantScan } from "@/components/work/merchant-scan";
 
+// Scan: enter the amount, then scan the customer's code (or type it) to take the payment (TAX-55).
 export default function MerchantScanPage() {
-  return <PlaceholderPage title="Scan" description="Scan a customer's QR code to take a payment." />;
+  return (
+    <main>
+      <AppHeader title="Scan" hideBack />
+      <MerchantScan />
+    </main>
+  );
 }

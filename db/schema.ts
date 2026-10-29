@@ -257,6 +257,8 @@ export const qrTokens = pgTable("qr_tokens", {
     .notNull()
     .references(() => wallets.id),
   nonce: text("nonce").notNull().unique(),
+  // Short code the customer can read out when the camera cannot scan (manual fallback).
+  code: text("code").unique(),
   expiresAt: timestamp("expires_at").notNull(),
   usedAt: timestamp("used_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),

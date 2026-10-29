@@ -50,6 +50,13 @@
       "when": 1793280092170,
       "tag": "0006_driver_and_merchant",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793296966394,
+      "tag": "0007_qr_manual_code",
+      "breakpoints": true
     }
   ]
 }

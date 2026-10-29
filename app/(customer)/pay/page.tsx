@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Keyboard, QrCode, Smartphone } from "lucide-react";
+import { Keyboard, QrCode, ScanLine, Smartphone } from "lucide-react";
 import { AppHeader } from "@/components/personal/app-header";
 import { cn } from "@/lib/utils";
 
@@ -23,6 +23,9 @@ export default async function PayPage({ searchParams }: { searchParams: Promise<
         <Link href={`/pay/scan${suffix}`} className={cn(tile, "border-foreground bg-background")}>
           <QrCode className="size-9" aria-hidden="true" />
           QR Scan
+        </Link>
+        <Link href="/pay/show" className="flex items-center gap-2 text-sm font-semibold underline underline-offset-4">
+          <ScanLine className="size-4" aria-hidden="true" /> Show my code to a driver or shop
         </Link>
         <Link href="/pay/code" className="flex items-center gap-2 text-sm font-semibold underline underline-offset-4">
           <Keyboard className="size-4" aria-hidden="true" /> Enter a merchant code

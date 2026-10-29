@@ -7,7 +7,7 @@ Which branch has what (checked when this page was last updated):
 | Branch | Migrations in `drizzle/` | Notes |
 | --- | --- | --- |
 | `main` | `0000` | Behind: only the BetterAuth tables. Takes `dev` at release time. |
-| `dev` | `0000` to `0006` | Full schema. Work happens here. |
+| `dev` | `0000` to `0007` | Full schema. Work happens here. |
 
 ## Migration history
 
@@ -18,6 +18,7 @@ Which branch has what (checked when this page was last updated):
 | `0002_loud_silk_fever.sql` | `transactions.amount_cents` nullable, `requested_amount` for failed attempts (reliability test) | TAX-66 |
 | `0003_auth_2fa_and_org_join.sql` | `two_factor` table, `user.two_factor_enabled`, `organisations.slug` / `logo_url` / `location` / `join_code` | TAX-32, TAX-34 |
 | `0006_driver_and_merchant.sql` | `payment_requests` table and `request_status` enum, `vehicles.model` / `seats` | TAX-48, TAX-50, TAX-55 |
+| `0007_qr_manual_code.sql` | `qr_tokens.code`, the short code under the QR | TAX-41, TAX-43, TAX-44 |
 | `0004_personal_account.sql` | `notifications` table, `notification_kind` enum, `tx_kind` gains `transfer`, `transactions.note`, `profiles.sms_alerts` / `promotions` / `language` | TAX-39, TAX-54 |
 
 Apply with `npm run db:migrate` against your own Neon branch. The tests in `tests/ledger.test.ts` and `tests/reliability.test.ts` use that branch, so **they fail until the latest migration is applied**.
@@ -91,6 +92,18 @@ Fares are priced by the server from `fare_bands`, never from the browser. Helper
 - The reader charges from the "Demo funds (system)" wallet as a simulated passenger until the signed QR and NFC handshake exists (TAX-43, `server/qr.ts`). Each charge is stamped with the phone location when the driver allows it.
 - A payment request is settled once: `settleRequest` uses the key `request:<id>`, so a second payer cannot be charged. Requests last 10 minutes.
 - The merchant screen "Demo: simulate customer paying" pays from the system wallet for solo testing.
+
+## Customer code, scanning and the payment API
+
+| Piece | Where | What it does |
+| --- | --- | --- |
+| Customer code | `server/qr.ts` (`createQrToken`, `getQrStatus`), screen `/pay/show` | Signed token (HMAC, `QR_SECRET`) valid 60 s, single use, refreshed automatically. Shown as a QR with an 8-character code underneath |
+| Check and consume | `server/qr-helpers.ts` (`issueQr`, `consumeQr`) | Verifies the signature or the code, expiry and single use; marks it used in one atomic update. Errors: Invalid code, Code expired, Code already used |
+| Payment API | `server/payments.ts` (`payFare` driver, `payMerchant` merchant) | Prices the payment on the server, then `transfer()` with key `qr:<nonce>`; stamps staff and location |
+| Scanner | `components/scan/qr-scanner.tsx`, `scan-dialog.tsx` | Camera scan with jsQR, plus typed-code fallback |
+| Feedback and timing | `lib/feedback.ts`, `lib/perf.ts` | Green or red result with the reason, tone and vibration; code size in bytes and tap-to-confirm time (last 50 kept in localStorage) |
+
+`QR_SECRET` must be set locally and on Vercel (any long random string). A 60-second token is about 195 bytes.
 
 ## Owner screens and the data they use
 

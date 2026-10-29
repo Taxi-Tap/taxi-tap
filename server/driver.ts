@@ -8,8 +8,8 @@ import { and, desc, eq, gte, inArray, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { fareBands, routes, transactions, trips, vehicles } from "@/db/schema";
 import { requireRole } from "@/server/auth";
-import { calcFare } from "@/server/fare";
 import { transfer } from "@/server/ledger";
+import { fareContext } from "@/server/trip-helpers";
 import { ensureWallet, systemFundsWallet } from "@/server/wallet-helpers";
 import { memberOrg, startOfToday } from "@/server/work-helpers";
 import { timeLabel } from "@/lib/format";
@@ -118,18 +118,11 @@ export async function chargeFare(input: {
   longitude?: number;
 }): Promise<ActionResult<{ amountCents: number; tripTotalCents: number }>> {
   const { profile } = await requireRole("driver");
-  const [trip] = await db.select().from(trips).where(and(eq(trips.driverId, profile.id), isNull(trips.endedAt))).limit(1);
-  if (!trip) return { ok: false, error: "Start a trip first." };
-  if (!Number.isInteger(input.quantity) || input.quantity < 1 || input.quantity > 30) {
-    return { ok: false, error: "Passengers must be between 1 and 30." };
-  }
-  const [band] = await db.select().from(fareBands).where(and(eq(fareBands.id, input.bandId), eq(fareBands.routeId, trip.routeId))).limit(1);
-  if (!band) return { ok: false, error: "That fare is not on this route." };
-  const [vehicle] = await db.select().from(vehicles).where(eq(vehicles.id, trip.vehicleId)).limit(1);
-  if (!vehicle) return { ok: false, error: "Vehicle not found." };
+  const ctx = await fareContext(profile.id, input.bandId, input.quantity);
+  if (!ctx.ok) return ctx;
+  const { trip, band, vehicle, amountCents } = ctx;
 
   const [passenger, ownerWallet] = await Promise.all([systemFundsWallet(), ensureWallet("organisation", vehicle.ownerOrgId)]);
-  const amountCents = calcFare(band, input.quantity);
   const tx = await transfer({
     fromId: passenger.id,
     toId: ownerWallet.id,

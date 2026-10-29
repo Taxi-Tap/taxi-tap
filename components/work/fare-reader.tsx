@@ -2,13 +2,17 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Loader2, Minus, Plus, QrCode, Smartphone, X } from "lucide-react";
+import { Check, FlaskConical, Loader2, Minus, Plus, ScanLine, X } from "lucide-react";
 import { chargeFare, endTrip } from "@/server/driver";
+import { payFare } from "@/server/payments";
+import { ScanDialog } from "@/components/scan/scan-dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { playResult } from "@/lib/feedback";
 import { rands } from "@/lib/format";
+import { timed, type PayTiming } from "@/lib/perf";
 import type { ActiveTrip } from "@/lib/work-types";
 import { cn } from "@/lib/utils";
 
@@ -26,39 +30,68 @@ function position(): Promise<{ latitude: number; longitude: number } | null> {
 }
 
 /**
- * Charge screen: choose where the passenger is going and how many are paying, then scan or tap.
- * The camera and NFC reader are not wired yet, so each button is a demo that takes the fare from
- * demo funds. The fare goes to the owner company wallet and is stamped with this phone's location.
+ * Charge screen (TAX-50): choose where the passenger is going and how many are paying, then scan
+ * their code. Every payment is stamped with this phone's location when allowed (TAX-53), shows a
+ * green or red result with the reason and a tone (TAX-52), and is timed (TAX-45).
+ * "Demo passenger" takes the fare from demo funds so the screen can be tried alone.
  */
 export function FareReader({ trip }: { trip: ActiveTrip }) {
   const router = useRouter();
   const [bandId, setBandId] = useState(trip.route.bands[0]?.id ?? "");
   const [qty, setQty] = useState(1);
-  const [busy, setBusy] = useState<"qr" | "nfc" | "end" | null>(null);
+  const [busy, setBusy] = useState<"scan" | "demo" | "end" | null>(null);
+  const [scanning, setScanning] = useState(false);
   const [outcome, setOutcome] = useState<Outcome>(null);
+  const [timing, setTiming] = useState<PayTiming | null>(null);
   const [total, setTotal] = useState(trip.totalCents);
   const band = trip.route.bands.find((b) => b.id === bandId);
   const fare = band ? band.amountCents * qty : 0;
-  const keyRef = useRef(crypto.randomUUID());
+  const demoKey = useRef(crypto.randomUUID());
 
-  async function charge(via: "qr" | "nfc") {
+  function show(ok: boolean, text: string) {
+    setOutcome({ ok, text });
+    playResult(ok);
+  }
+
+  async function chargeScanned(credential: string) {
     if (!band) return;
-    setBusy(via);
+    setBusy("scan");
     setOutcome(null);
     try {
       const where = await position();
-      const r = await chargeFare({ bandId, quantity: qty, key: keyRef.current, ...(where ?? {}) });
-      if (r.ok) {
-        keyRef.current = crypto.randomUUID(); // next passenger is a new payment
-        setTotal(r.tripTotalCents);
-        setOutcome({ ok: true, text: `${rands(r.amountCents)} received for ${qty} ${qty === 1 ? "passenger" : "passengers"}` });
-        if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(80);
+      const { result, timing: t } = await timed(credential, () => payFare({ credential, bandId, quantity: qty, ...(where ?? {}) }));
+      setTiming(t);
+      if (result.ok) {
+        setTotal((x) => x + result.amountCents);
+        show(true, `${rands(result.amountCents)} received for ${qty} ${qty === 1 ? "passenger" : "passengers"}`);
         router.refresh();
       } else {
-        setOutcome({ ok: false, text: r.error });
+        show(false, result.error);
       }
     } catch {
-      setOutcome({ ok: false, text: "Payment failed. Try again." });
+      show(false, "Payment failed. Try again.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function chargeDemo() {
+    if (!band) return;
+    setBusy("demo");
+    setOutcome(null);
+    try {
+      const where = await position();
+      const r = await chargeFare({ bandId, quantity: qty, key: demoKey.current, ...(where ?? {}) });
+      if (r.ok) {
+        demoKey.current = crypto.randomUUID();
+        setTotal(r.tripTotalCents);
+        show(true, `${rands(r.amountCents)} received for ${qty} ${qty === 1 ? "passenger" : "passengers"} (demo)`);
+        router.refresh();
+      } else {
+        show(false, r.error);
+      }
+    } catch {
+      show(false, "Payment failed. Try again.");
     } finally {
       setBusy(null);
     }
@@ -127,18 +160,21 @@ export function FareReader({ trip }: { trip: ActiveTrip }) {
           <p className="text-sm font-semibold">{outcome.text}</p>
         </div>
       ) : null}
+      {timing ? (
+        <p className="mt-2 text-center text-xs text-muted-foreground">
+          Code {timing.payloadBytes} bytes {"·"} confirmed in {timing.confirmMs} ms
+        </p>
+      ) : null}
 
-      <div className="mt-6 grid grid-cols-2 gap-3">
-        <Button onClick={() => charge("qr")} disabled={busy !== null || !band} className="h-14 rounded-full text-base font-semibold">
-          {busy === "qr" ? <Loader2 className="animate-spin" /> : <QrCode />}
-          Scan {rands(fare)}
-        </Button>
-        <Button onClick={() => charge("nfc")} disabled={busy !== null || !band} variant="outline" className="h-14 rounded-full text-base font-semibold">
-          {busy === "nfc" ? <Loader2 className="animate-spin" /> : <Smartphone />}
-          Tap {rands(fare)}
-        </Button>
-      </div>
-      <p className="mt-2 text-center text-xs text-muted-foreground">Demo reader: each press takes the fare from demo funds as a passenger.</p>
+      <Button onClick={() => setScanning(true)} disabled={busy !== null || !band} className="mt-6 h-14 w-full rounded-full text-base font-semibold">
+        {busy === "scan" ? <Loader2 className="animate-spin" /> : <ScanLine />}
+        Scan passenger {rands(fare)}
+      </Button>
+      <Button onClick={chargeDemo} disabled={busy !== null || !band} variant="outline" className="mt-3 h-11 w-full rounded-full font-semibold">
+        {busy === "demo" ? <Loader2 className="animate-spin" /> : <FlaskConical />}
+        Demo passenger {rands(fare)}
+      </Button>
+      <p className="mt-2 text-center text-xs text-muted-foreground">Demo passenger takes the fare from demo funds, for trying the screen alone.</p>
 
       <Alert className="mt-6">
         <AlertDescription>Fares go to the owner business wallet. Your takings today are under Takings.</AlertDescription>
@@ -147,6 +183,8 @@ export function FareReader({ trip }: { trip: ActiveTrip }) {
         {busy === "end" ? <Loader2 className="animate-spin" /> : null}
         End trip
       </Button>
+
+      <ScanDialog open={scanning} onOpenChange={setScanning} onCredential={(c) => void chargeScanned(c)} title="Scan the passenger's code" />
     </div>
   );
 }
