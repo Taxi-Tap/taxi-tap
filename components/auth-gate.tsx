@@ -37,6 +37,10 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       else setAllowed(true);
       return;
     }
+    if (!session && pathname === "/") {
+      setAllowed(true);
+      return;
+    }
     if (!session) {
       router.replace("/sign-in");
       return;

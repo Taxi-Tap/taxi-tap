@@ -4,6 +4,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { LandingPage } from "@/components/landing-page";
 import { BusFront, ChevronRight, LayoutDashboard, LogOut, Store, UserRound, WalletCards } from "lucide-react";
 
 type Role = "customer" | "merchant" | "owner";
@@ -16,12 +17,16 @@ const workspaces = {
 
 export default function Home() {
   const [session, setSession] = useState<Session | null>(null);
+  const [ready, setReady] = useState(false);
   useEffect(() => {
     try {
       const raw = localStorage.getItem("taxi-tap-demo-session");
       if (raw) setSession(JSON.parse(raw) as Session);
     } catch { /* Keep the signed-in greeting unavailable if storage is blocked. */ }
+    setReady(true);
   }, []);
+  if (!ready) return null;
+  if (!session) return <LandingPage />;
   const role = session?.role ?? "customer";
   const roleName = role === "owner" ? "Taxi owner" : role === "merchant" ? "Merchant" : "Customer";
   function signOut() {
