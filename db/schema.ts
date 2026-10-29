@@ -182,11 +182,12 @@ export const transactions = pgTable(
     toWalletId: uuid("to_wallet_id")
       .notNull()
       .references(() => wallets.id),
-    amountCents: integer("amount_cents").notNull(),
+    amountCents: integer("amount_cents"),
     kind: txKindEnum("kind").notNull(),
     method: txMethodEnum("method").notNull(),
     status: txStatusEnum("status").default("success").notNull(),
     failureReason: text("failure_reason"),
+    requestedAmount: text("requested_amount"),
     quantity: integer("quantity").default(1).notNull(),
     tripId: uuid("trip_id").references(() => trips.id),
     fareBandId: uuid("fare_band_id").references(() => fareBands.id),
@@ -199,7 +200,7 @@ export const transactions = pgTable(
   (table) => [
     check(
       "transactions_amount_cents_positive",
-      sql`${table.amountCents} > 0`,
+      sql`${table.amountCents} > 0 OR (${table.amountCents} IS NULL AND ${table.status} = 'failed' AND ${table.requestedAmount} IS NOT NULL)`,
     ),
   ],
 );
