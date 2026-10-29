@@ -7,9 +7,9 @@ type Role = "customer" | "merchant" | "owner";
 type Session = { role: Role; email: string };
 
 const landing: Record<Role, string> = {
-  customer: "/wallet",
-  merchant: "/request",
-  owner: "/dashboard",
+  customer: "/",
+  merchant: "/",
+  owner: "/",
 };
 
 function readSession(): Session | null {
@@ -43,7 +43,8 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     const expectedRole =
       pathname.startsWith("/wallet") ? "customer" :
       pathname.startsWith("/request") ? "merchant" :
-      pathname.startsWith("/dashboard") || pathname.startsWith("/trip") ? "owner" : null;
+      pathname.startsWith("/dashboard") || pathname.startsWith("/trip") ? "owner" :
+      pathname.startsWith("/profile") ? null : null;
 
     if (pathname === "/" || (expectedRole && expectedRole !== session.role)) {
       router.replace(landing[session.role]);
