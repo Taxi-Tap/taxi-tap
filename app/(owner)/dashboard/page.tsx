@@ -6,9 +6,9 @@ import { ArrowLeft, BusFront, CircleDollarSign, QrCode, Smartphone, TrendingUp }
 
 type Trip = {id:string; taxi:string; route:string; fare:number; fee:number; method:"QR"|"NFC"; at:string};
 const KEY="taxi-tap-demo-owner-trips";
-const taxis=[{id:"TT-101",driver:"Sipho M.",route:"Central Station – Umlazi"},{id:"TT-204",driver:"Thandi N.",route:"CBD – KwaMashu"},{id:"TT-317",driver:"Bongani D.",route:"Workshop – Pinetown"},{id:"TT-422",driver:"Zanele K.",route:"CBD – Chatsworth"}];
+const taxis=[{id:"TT-101",driver:"Christoffel du Toit",route:"Central Station – Umlazi"},{id:"TT-204",driver:"Londa Mavimbela",route:"CBD – KwaMashu"},{id:"TT-317",driver:"Lethukuthula Gumede",route:"Workshop – Pinetown"},{id:"TT-422",driver:"Zanele K.",route:"CBD – Chatsworth"}];
 const money=(n:number)=>new Intl.NumberFormat("en-ZA",{style:"currency",currency:"ZAR"}).format(n);
-function demoTrips():Trip[]{const now=Date.now();return Array.from({length:18},(_,i)=>{const taxi=taxis[i%taxis.length];const fare=[15,18,20,25,12,22][i%6];return{id:"DEMO-"+(700+i),taxi:taxi.id,route:taxi.route,fare,fee:Number((fare*.06).toFixed(2)),method:i%2?"QR":"NFC",at:new Date(now-i*1000*60*37).toISOString()};});}
+function demoTrips():Trip[]{const now=Date.now();return Array.from({length:18},(_,i)=>{const taxi=taxis[i%taxis.length];const fare=taxi.id==="TT-101"?23000:taxi.id==="TT-204"?1800:taxi.id==="TT-317"?2200:[15,18,20,25,12,22][i%6];return{id:"DEMO-"+(700+i),taxi:taxi.id,route:taxi.route,fare,fee:Number((fare*.06).toFixed(2)),method:i%2?"QR":"NFC",at:new Date(now-i*1000*60*37).toISOString()};});}
 export default function DashboardPage(){
  const [trips,setTrips]=useState<Trip[]>([]);
  const [ready,setReady]=useState(false);
