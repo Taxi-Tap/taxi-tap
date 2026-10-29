@@ -18,7 +18,12 @@ export default function SignInPage() {
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setNotice("Sign-in is not connected to the authentication service yet. This screen is a prototype; no credentials were sent or saved.");
+    try {
+      window.localStorage.setItem("taxi-tap-demo-session", JSON.stringify({ role, email: email.trim() }));
+      window.location.assign(role === "customer" ? "/wallet" : role === "merchant" ? "/request" : "/dashboard");
+    } catch {
+      setNotice("Could not start a demo session in this browser. Please enable browser storage and try again.");
+    }
   }
 
   return (
@@ -35,7 +40,7 @@ export default function SignInPage() {
             <button type="submit" className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#102a43] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#1b4260] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-700 focus-visible:ring-offset-2">Continue as {roles.find((item) => item.id === role)?.title} <ArrowRight className="size-4" /></button>
           </form>
           {notice && <p role="status" className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-950">{notice}</p>}
-          <p className="mt-4 text-center text-xs leading-5 text-slate-500">Prototype only — do not enter a real password.</p>
+          <p className="mt-4 text-center text-xs leading-5 text-slate-500">Demo sign-in only. Authentication is not yet connected; do not use a real password.</p>
         </section>
       </div>
     </main>
