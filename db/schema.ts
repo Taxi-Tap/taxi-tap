@@ -7,5 +7,221 @@
 //                        npm run db:migrate   (applies it to your Neon branch)
 // Amounts are whole cents (integer), never decimals.
 
-// TODO TAX-89: add the tables here.
-export {};
+import { user } from "./auth-schema";
+import { sql } from "drizzle-orm";
+import {
+  boolean,
+  check,
+  integer,
+  numeric,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from "drizzle-orm/pg-core";
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
+
+export const roleEnum = pgEnum("role", [
+  "customer",
+  "driver",
+  "owner",
+  "association_admin",
+  "merchant_staff",
+]);
+export const orgTypeEnum = pgEnum("org_type", [
+  "association",
+  "business",
+  "merchant",
+]);
+export const fareModelEnum = pgEnum("fare_model", ["flat", "ladder"]);
+export const walletOwnerTypeEnum = pgEnum("wallet_owner_type", [
+  "profile",
+  "organisation",
+]);
+export const txKindEnum = pgEnum("tx_kind", ["fare", "topup", "merchant"]);
+export const txMethodEnum = pgEnum("tx_method", ["qr", "nfc", "simulated"]);
+export const txStatusEnum = pgEnum("tx_status", [
+  "success",
+  "failed",
+  "pending",
+]);
+
+export const profiles = pgTable("profiles", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  authUserId: text("auth_user_id")
+    .notNull()
+    .unique()
+    .references(() => user.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  phone: text("phone"),
+  role: roleEnum("role").default("customer").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const organisations = pgTable("organisations", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull(),
+  type: orgTypeEnum("type").notNull(),
+  associationId: uuid("association_id").references(
+    (): AnyPgColumn => organisations.id,
+  ),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const memberships = pgTable(
+  "memberships",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    profileId: uuid("profile_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    organisationId: uuid("organisation_id")
+      .notNull()
+      .references(() => organisations.id, { onDelete: "cascade" }),
+    role: text("role").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("memberships_profile_organisation_unique").on(
+      table.profileId,
+      table.organisationId,
+    ),
+  ],
+);
+
+export const stalls = pgTable("stalls", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  ownerOrgId: uuid("owner_org_id")
+    .notNull()
+    .references(() => organisations.id),
+  name: text("name").notNull(),
+  location: text("location"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const routes = pgTable("routes", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull(),
+  associationId: uuid("association_id")
+    .notNull()
+    .references(() => organisations.id),
+  fareModel: fareModelEnum("fare_model").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const fareBands = pgTable(
+  "fare_bands",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    routeId: uuid("route_id")
+      .notNull()
+      .references(() => routes.id, { onDelete: "cascade" }),
+    label: text("label").notNull(),
+    amountCents: integer("amount_cents").notNull(),
+    sortOrder: integer("sort_order").default(0).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    check("fare_bands_amount_cents_positive", sql`${table.amountCents} > 0`),
+  ],
+);
+
+export const vehicles = pgTable("vehicles", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  registration: text("registration").notNull().unique(),
+  ownerOrgId: uuid("owner_org_id")
+    .notNull()
+    .references(() => organisations.id),
+  routeId: uuid("route_id").references(() => routes.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const trips = pgTable("trips", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  vehicleId: uuid("vehicle_id")
+    .notNull()
+    .references(() => vehicles.id),
+  driverId: uuid("driver_id")
+    .notNull()
+    .references(() => profiles.id),
+  routeId: uuid("route_id")
+    .notNull()
+    .references(() => routes.id),
+  startedAt: timestamp("started_at").defaultNow().notNull(),
+  endedAt: timestamp("ended_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const wallets = pgTable(
+  "wallets",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    ownerType: walletOwnerTypeEnum("owner_type").notNull(),
+    ownerId: uuid("owner_id").notNull(),
+    balanceCents: integer("balance_cents").default(0).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("wallets_owner_type_owner_id_unique").on(
+      table.ownerType,
+      table.ownerId,
+    ),
+    check("wallets_balance_cents_nonnegative", sql`${table.balanceCents} >= 0`),
+  ],
+);
+
+export const transactions = pgTable(
+  "transactions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    fromWalletId: uuid("from_wallet_id")
+      .notNull()
+      .references(() => wallets.id),
+    toWalletId: uuid("to_wallet_id")
+      .notNull()
+      .references(() => wallets.id),
+    amountCents: integer("amount_cents"),
+    kind: txKindEnum("kind").notNull(),
+    method: txMethodEnum("method").notNull(),
+    status: txStatusEnum("status").default("success").notNull(),
+    failureReason: text("failure_reason"),
+    requestedAmount: text("requested_amount"),
+    quantity: integer("quantity").default(1).notNull(),
+    tripId: uuid("trip_id").references(() => trips.id),
+    fareBandId: uuid("fare_band_id").references(() => fareBands.id),
+    staffId: uuid("staff_id").references(() => profiles.id),
+    latitude: numeric("latitude"),
+    longitude: numeric("longitude"),
+    idempotencyKey: text("idempotency_key").notNull().unique(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    check(
+      "transactions_amount_cents_positive",
+      sql`${table.amountCents} > 0 OR (${table.amountCents} IS NULL AND ${table.status} = 'failed' AND ${table.requestedAmount} IS NOT NULL)`,
+    ),
+  ],
+);
+
+export const qrTokens = pgTable("qr_tokens", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  walletId: uuid("wallet_id")
+    .notNull()
+    .references(() => wallets.id),
+  nonce: text("nonce").notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  usedAt: timestamp("used_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const nfcTags = pgTable("nfc_tags", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  serial: text("serial").notNull().unique(),
+  walletId: uuid("wallet_id")
+    .notNull()
+    .references(() => wallets.id),
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
