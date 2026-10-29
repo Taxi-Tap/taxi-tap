@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable react-hooks/set-state-in-effect -- Browser-only demo session is hydrated from localStorage after mount. */
+
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ArrowLeft, LogOut, UserRound } from "lucide-react";
