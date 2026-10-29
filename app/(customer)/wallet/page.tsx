@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable react-hooks/set-state-in-effect, react-hooks/purity -- Demo wallet data is hydrated from localStorage after mount and sample records use runtime dates. */
+
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowDownLeft, ArrowLeft, ArrowUpRight, CheckCircle2, Plus, ShieldCheck, WalletCards } from "lucide-react";
