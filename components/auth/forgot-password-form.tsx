@@ -6,6 +6,8 @@ import { Loader2, MailCheck } from "lucide-react";
 import { requestPasswordReset } from "@/server/auth-actions";
 import { AuthScreen } from "@/components/auth/auth-screen";
 import { Field, inputClass, primaryButtonClass } from "@/components/auth/field";
+import { DemoEmailDialog } from "@/components/auth/demo-email-dialog";
+import type { DemoEmail } from "@/lib/auth-schemas";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { validateEmailForm } from "@/lib/auth-validation";
@@ -15,6 +17,7 @@ export function ForgotPasswordForm() {
   const [error, setError] = useState("");
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [demoEmail, setDemoEmail] = useState<DemoEmail | null>(null);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -25,7 +28,10 @@ export function ForgotPasswordForm() {
     setBusy(true);
     try {
       const result = await requestPasswordReset({ email });
-      if (result.ok) setSent(true);
+      if (result.ok) {
+        setSent(true);
+        setDemoEmail(result.demoEmail ?? null);
+      }
       else setError("We could not send a reset link right now. Please try again.");
     } catch {
       setError("We could not send a reset link right now. Please try again.");
@@ -46,6 +52,7 @@ export function ForgotPasswordForm() {
         }
         backHref="/sign-in"
       >
+        <DemoEmailDialog email={demoEmail} onClose={() => setDemoEmail(null)} />
         <MailCheck className="mb-6 size-10 text-fuchsia-600" aria-hidden="true" />
         <div className="space-y-3">
           <Button className={primaryButtonClass} render={<Link href="/sign-in" />} nativeButton={false}>

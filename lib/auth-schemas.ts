@@ -36,13 +36,16 @@ export type SignInInput = z.input<typeof signInSchema>;
 export type RequestPasswordResetInput = z.input<typeof requestPasswordResetSchema>;
 export type ResetPasswordInput = z.input<typeof resetPasswordSchema>;
 
+/** An email we would have sent, shown in a popup while no email provider is configured. */
+export type DemoEmail = { subject: string; text: string };
+
 /**
  * What every auth action returns, so screens can show errors without try/catch.
  * `url` is only set by signInWithGoogle: send the browser there (window.location.href = url).
  * `twoFactor` is set by signIn when the account needs a code: go to /two-factor.
  */
 export type AuthResult =
-  | { ok: true; url?: string; twoFactor?: boolean; maskedEmail?: string }
+  | { ok: true; url?: string; twoFactor?: boolean; maskedEmail?: string; demoEmail?: DemoEmail }
   | {
       ok: false;
       error: string;

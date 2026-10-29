@@ -1,8 +1,19 @@
 // Sends transactional email (verification links, reset links, 2FA codes).
-// Uses Resend's HTTP API when RESEND_API_KEY is set. Without it nothing is sent:
-// in development the message is printed to the server console so the flow can
-// still be tested; in production it is dropped and sign-up does not require
-// verified email (see `emailConfigured` below).
+// Uses Resend's HTTP API when RESEND_API_KEY is set. Without a provider nothing is
+// sent: the message is handed back to the screen through withCapturedEmails() and
+// shown in a popup instead (demo mode), and is also printed in the dev console.
+
+import { AsyncLocalStorage } from "node:async_hooks";
+
+export type CapturedEmail = { subject: string; text: string };
+const capture = new AsyncLocalStorage<CapturedEmail[]>();
+
+/** Run an auth call and collect any emails it would have sent. Only used when no provider is set. */
+export async function withCapturedEmails<T>(fn: () => Promise<T>) {
+  const messages: CapturedEmail[] = [];
+  const result = await capture.run(messages, fn);
+  return { result, messages };
+}
 
 const apiKey = process.env.RESEND_API_KEY;
 const from = process.env.EMAIL_FROM ?? "Taxi Tap <onboarding@resend.dev>";
@@ -12,6 +23,7 @@ export const emailConfigured = Boolean(apiKey);
 
 export async function sendEmail(message: { to: string; subject: string; text: string }) {
   if (!apiKey) {
+    capture.getStore()?.push({ subject: message.subject, text: message.text });
     if (process.env.NODE_ENV !== "production") {
       console.log(`[email] to ${message.to} · ${message.subject}\n${message.text}`);
     }

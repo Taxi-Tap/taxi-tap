@@ -6,12 +6,15 @@ import { Loader2 } from "lucide-react";
 import { resendVerification } from "@/server/auth-actions";
 import { AuthScreen } from "@/components/auth/auth-screen";
 import { primaryButtonClass } from "@/components/auth/field";
+import { DemoEmailDialog } from "@/components/auth/demo-email-dialog";
+import type { DemoEmail } from "@/lib/auth-schemas";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 
 /** "Verify account": the sign-up / sign-in screen for an address that is not confirmed yet. */
 export function VerifyAccount({ email }: { email: string }) {
   const [busy, setBusy] = useState(false);
+  const [demoEmail, setDemoEmail] = useState<DemoEmail | null>(null);
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
 
   async function resend() {
@@ -19,6 +22,7 @@ export function VerifyAccount({ email }: { email: string }) {
     setNotice(null);
     try {
       const result = await resendVerification(email);
+      if (result.ok) setDemoEmail(result.demoEmail ?? null);
       setNotice(
         result.ok
           ? { ok: true, text: "We sent a new verification email." }
@@ -56,6 +60,7 @@ export function VerifyAccount({ email }: { email: string }) {
       }
     >
       <div className="space-y-3">
+        <DemoEmailDialog email={demoEmail} onClose={() => setDemoEmail(null)} />
         {notice ? (
           <Alert variant={notice.ok ? "default" : "destructive"} role={notice.ok ? "status" : "alert"}>
             <AlertDescription>{notice.text}</AlertDescription>

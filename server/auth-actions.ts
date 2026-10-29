@@ -16,6 +16,7 @@ import { headers } from "next/headers";
 import { APIError } from "better-auth/api";
 import { z } from "zod";
 import { auth, googleEnabled } from "@/server/auth";
+import { emailConfigured, withCapturedEmails } from "@/server/email";
 import {
   requestPasswordResetSchema,
   resetPasswordSchema,
@@ -96,11 +97,14 @@ export async function requestPasswordReset(input: RequestPasswordResetInput): Pr
   const parsed = requestPasswordResetSchema.safeParse(input);
   if (!parsed.success) return invalid(parsed.error);
   try {
-    await auth.api.requestPasswordReset({
-      body: { email: parsed.data.email, redirectTo: RESET_PASSWORD_PAGE },
-      headers: await headers(),
-    });
-    return { ok: true };
+    const { messages } = await withCapturedEmails(async () =>
+      auth.api.requestPasswordReset({
+        body: { email: parsed.data.email, redirectTo: RESET_PASSWORD_PAGE },
+        headers: await headers(),
+      }),
+    );
+    // No email provider: show the link in a popup (only exists if the account does).
+    return { ok: true, demoEmail: emailConfigured ? undefined : messages[0] };
   } catch (err) {
     return failure(err);
   }
@@ -146,11 +150,25 @@ export async function resendVerification(email: string): Promise<AuthResult> {
   const parsed = requestPasswordResetSchema.safeParse({ email });
   if (!parsed.success) return invalid(parsed.error);
   try {
-    await auth.api.sendVerificationEmail({
-      body: { email: parsed.data.email, callbackURL: "/" },
-      headers: await headers(),
-    });
-    return { ok: true };
+    const { messages } = await withCapturedEmails(async () =>
+      auth.api.sendVerificationEmail({
+        body: { email: parsed.data.email, callbackURL: "/" },
+        headers: await headers(),
+      }),
+    );
+    return { ok: true, demoEmail: emailConfigured ? undefined : messages[0] };
+  } catch (err) {
+    return failure(err);
+  }
+}
+
+/** Send the two-factor code for the sign-in in progress. Returns the code for a popup when no email provider is set. */
+export async function sendTwoFactorCode(): Promise<AuthResult> {
+  try {
+    const { messages } = await withCapturedEmails(async () =>
+      auth.api.sendTwoFactorOTP({ body: {}, headers: await headers() }),
+    );
+    return { ok: true, demoEmail: emailConfigured ? undefined : messages[0] };
   } catch (err) {
     return failure(err);
   }

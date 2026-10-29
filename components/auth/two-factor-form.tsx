@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import { REGEXP_ONLY_DIGITS } from "input-otp";
 import { Loader2 } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
+import { sendTwoFactorCode } from "@/server/auth-actions";
+import { DemoEmailDialog } from "@/components/auth/demo-email-dialog";
+import type { DemoEmail } from "@/lib/auth-schemas";
 import { getAuthProfile } from "@/app/auth-actions";
 import { AuthScreen } from "@/components/auth/auth-screen";
 import { Field, inputClass, primaryButtonClass } from "@/components/auth/field";
@@ -28,15 +31,17 @@ export function TwoFactorForm({ maskedEmail }: { maskedEmail: string }) {
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
+  const [demoEmail, setDemoEmail] = useState<DemoEmail | null>(null);
   const sentOnce = useRef(false);
 
   async function send(isResend: boolean) {
     setError("");
-    const { error: sendError } = await authClient.twoFactor.sendOtp();
-    if (sendError) {
+    const sent = await sendTwoFactorCode();
+    if (!sent.ok) {
       setError("We could not send a code. Go back and sign in again.");
       return;
     }
+    setDemoEmail(sent.demoEmail ?? null);
     if (isResend) setNotice("We sent you a new code.");
   }
 
@@ -101,6 +106,7 @@ export function TwoFactorForm({ maskedEmail }: { maskedEmail: string }) {
         </p>
       }
     >
+      <DemoEmailDialog email={demoEmail} onClose={() => setDemoEmail(null)} />
       <form onSubmit={handleVerify} noValidate className="flex flex-1 flex-col gap-5">
         <Field
           id="otp"
