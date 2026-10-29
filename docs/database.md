@@ -105,6 +105,15 @@ Fares are priced by the server from `fare_bands`, never from the browser. Helper
 
 `QR_SECRET` must be set locally and on Vercel (any long random string). A 60-second token is about 195 bytes.
 
+## Company management and the association
+
+| Piece | Where | What it does |
+| --- | --- | --- |
+| Team and company | `server/organisations.ts` | `listMembers`, `removeMember` (the person goes back to a customer account), `updateOrganisation` |
+| Vehicles and stalls | `server/fleet.ts` | Add, edit and remove, always limited to the signed-in owner's own company. A vehicle with trips on record cannot be removed |
+| Association | `server/organisations.ts` (`listOrganisations`, `linkBusiness`), screens under `/admin` | The association admin links a taxi business by its company code (`organisations.association_id`) and edits the shared fare table. Drivers of linked businesses can start shifts on the association's routes |
+| Owner map pins | `server/company.ts` (`getMapData`) | Real payments to the company wallet that were stamped with a location in the last 7 days; labelled sample pins when there are none |
+
 ## Owner screens and the data they use
 
 No schema change: owners use the tables above. Real rows are shown first; `lib/owner-mock.ts` adds placeholder people, vehicles, stalls, map pins, trips and routes marked **Sample**.

@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 type Row = { label: string; amount: string };
 
 /** Add or edit a route and its fares. Sample routes are shown read-only. */
-export function RouteForm({ route }: { route?: RouteView }) {
+export function RouteForm({ route, doneHref = "/fares" }: { route?: RouteView; doneHref?: string }) {
   const router = useRouter();
   const readOnly = route?.sample ?? false;
   const [name, setName] = useState(route?.name ?? "");
@@ -46,7 +46,7 @@ export function RouteForm({ route }: { route?: RouteView }) {
       const r = route ? await updateRoute(route.id, input) : await createRoute(input);
       if (!r.ok) return setError(r.error);
       toast.success(route ? "Route updated" : "Route added");
-      router.push("/fares");
+      router.push(doneHref);
       router.refresh();
     } catch {
       setError("We could not save the route. Please try again.");

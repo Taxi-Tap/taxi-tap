@@ -3,20 +3,25 @@
 // Owner side: company profile and join code, team, wallet, fares and routes.
 // Real rows come first; lib/owner-mock.ts fills the screens with labelled sample data.
 
-import { and, count, desc, eq, inArray, ne } from "drizzle-orm";
+import { and, count, desc, eq, gte, inArray, ne } from "drizzle-orm";
 import { db } from "@/db";
 import { user } from "@/db/auth-schema";
 import { fareBands, memberships, organisations, profiles, routes, stalls, transactions, vehicles } from "@/db/schema";
 import { requireRole } from "@/server/auth";
 import { newJoinCode } from "@/server/join-code";
 import { ensureWallet, walletNames } from "@/server/wallet-helpers";
+import { startOfToday } from "@/server/work-helpers";
+import { timeLabel } from "@/lib/format";
+import { formatCents } from "@/lib/money";
 import {
   SAMPLE_DRIVER_PROFILES,
   SAMPLE_OWNER_TX,
+  SAMPLE_PINS,
   SAMPLE_PEOPLE,
   SAMPLE_ROUTES,
   SAMPLE_TEAM,
   SAMPLE_WALLET,
+  type MapPin,
   type OwnerTx,
   type RouteView,
   type TeamEntry,
@@ -26,7 +31,7 @@ import type { ActionResult } from "@/lib/personal-types";
 
 /** The company the signed-in owner belongs to. */
 async function myOrg() {
-  const { profile, session } = await requireRole("owner");
+  const { profile, session } = await requireRole("owner", "association_admin");
   const [row] = await db
     .select({ org: organisations })
     .from(memberships)
@@ -199,8 +204,54 @@ function sampleWallet() {
   };
 }
 
-export async function getMapSummary() {
-  return { paymentsToday: SAMPLE_WALLET.paymentsToday, densest: SAMPLE_WALLET.densest };
+export type MapData = {
+  pins: MapPin[];
+  paymentsToday: number;
+  densest: string;
+  /** True when there are no GPS-stamped payments yet and the screen shows placeholders. */
+  sample: boolean;
+};
+
+/**
+ * Payment pins for the owner map (TAX-90): every successful payment to the company wallet that was
+ * stamped with the reader's location in the last 7 days. Falls back to labelled sample pins.
+ */
+export async function getMapData(): Promise<MapData> {
+  const { org } = await myOrg();
+  const sampleData: MapData = { pins: SAMPLE_PINS, paymentsToday: SAMPLE_WALLET.paymentsToday, densest: SAMPLE_WALLET.densest, sample: true };
+  if (!org) return sampleData;
+  const wallet = await ensureWallet("organisation", org.id);
+  const week = new Date(Date.now() - 7 * 86_400_000);
+  const rows = await db
+    .select()
+    .from(transactions)
+    .where(and(eq(transactions.toWalletId, wallet.id), eq(transactions.status, "success"), gte(transactions.createdAt, week)))
+    .orderBy(desc(transactions.createdAt))
+    .limit(300);
+  const since = startOfToday();
+  const today = rows.filter((r) => r.createdAt >= since);
+  const located = rows.filter((r) => r.latitude !== null && r.longitude !== null);
+  if (located.length === 0 && today.length === 0) return sampleData;
+
+  const perHour = new Map<number, number>();
+  for (const r of today) {
+    const h = Number(r.createdAt.toLocaleTimeString("en-ZA", { hour: "2-digit", hour12: false, timeZone: "Africa/Johannesburg" }).slice(0, 2));
+    perHour.set(h, (perHour.get(h) ?? 0) + 1);
+  }
+  const busiest = [...perHour.entries()].sort((a, b) => b[1] - a[1])[0];
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return {
+    pins: located.map((r) => ({
+      id: r.id,
+      kind: r.kind === "merchant" ? "stall" : "vehicle",
+      title: `${formatCents(r.amountCents ?? 0)} at ${timeLabel(r.createdAt.toISOString())}`,
+      lat: Number(r.latitude),
+      lng: Number(r.longitude),
+    })),
+    paymentsToday: today.length,
+    densest: busiest ? `Busiest around ${pad(busiest[0])}:00 to ${pad((busiest[0] + 1) % 24)}:00` : "No payments yet today",
+    sample: false,
+  };
 }
 
 export async function listOwnerRoutes(): Promise<RouteView[]> {

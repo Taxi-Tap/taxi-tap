@@ -12,7 +12,7 @@ const FILTERS = [
   { id: "stall", label: "Stalls" },
 ] as const;
 
-export function OwnerMap({ pins, paymentsToday, densest }: { pins: MapPin[]; paymentsToday: number; densest: string }) {
+export function OwnerMap({ pins, paymentsToday, densest, sample }: { pins: MapPin[]; paymentsToday: number; densest: string; sample: boolean }) {
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["id"]>("all");
   const shown = useMemo(() => pins.filter((p) => filter === "all" || p.kind === filter), [pins, filter]);
 
@@ -42,7 +42,7 @@ export function OwnerMap({ pins, paymentsToday, densest }: { pins: MapPin[]; pay
           <div className="h-full w-2/3 bg-green-500" />
         </div>
         <p className="mt-1 flex items-center gap-2 text-base font-bold">
-          {paymentsToday} payments today <SampleBadge />
+          {paymentsToday} {paymentsToday === 1 ? "payment" : "payments"} today {sample ? <SampleBadge /> : null}
         </p>
         <p className="mt-1 text-sm text-muted-foreground">{densest}</p>
       </section>

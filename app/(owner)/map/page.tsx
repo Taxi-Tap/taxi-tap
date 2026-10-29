@@ -2,13 +2,12 @@ import Link from "next/link";
 import { CircleHelp, UserRound } from "lucide-react";
 import { AppHeader } from "@/components/personal/app-header";
 import { OwnerMap } from "@/components/owner/owner-map";
-import { SAMPLE_PINS } from "@/lib/owner-mock";
-import { getMapSummary } from "@/server/company";
+import { getMapData } from "@/server/company";
 
-// Map: where vehicles and stalls took payments. Pins are sample coordinates until
-// payments carry GPS (TAX-53) and the owner has vehicles and stalls registered.
+// Map: where vehicles and stalls took payments. Pins are real GPS-stamped payments (TAX-53);
+// until there are any, labelled sample pins are shown.
 export default async function OwnerMapPage() {
-  const summary = await getMapSummary();
+  const map = await getMapData();
   return (
     <main className="relative h-[calc(100dvh-5rem)] overflow-hidden">
       <div className="relative z-10 bg-background">
@@ -27,7 +26,7 @@ export default async function OwnerMapPage() {
           }
         />
       </div>
-      <OwnerMap pins={SAMPLE_PINS} paymentsToday={summary.paymentsToday} densest={summary.densest} />
+      <OwnerMap pins={map.pins} paymentsToday={map.paymentsToday} densest={map.densest} sample={map.sample} />
     </main>
   );
 }
