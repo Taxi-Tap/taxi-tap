@@ -1,5 +1,5 @@
-import { PlaceholderPage } from "@/components/placeholder-page";
+import { SignUpForm } from "@/components/auth/sign-up-form";
 
 export default function SignUpPage() {
-  return <PlaceholderPage title="Sign up" description="Create a Taxi Tap account." />;
+  return <SignUpForm />;
 }
