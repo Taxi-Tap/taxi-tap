@@ -5,7 +5,7 @@ import { twoFactor } from "better-auth/plugins";
 import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { db } from "@/db";
-import { profiles } from "@/db/schema";
+import { profiles, wallets } from "@/db/schema";
 import { emailConfigured, sendEmail } from "@/server/email";
 import type { AppRole } from "@/lib/role-routing";
 
@@ -87,6 +87,8 @@ export async function ensureProfile(authUserId: string, name: string): Promise<P
     .onConflictDoNothing({ target: profiles.authUserId });
   const profile = await getProfileForUser(authUserId);
   if (!profile) throw new Error("Could not create profile");
+  // Every account has at least one card.
+  await db.insert(wallets).values({ ownerType: "profile", ownerId: profile.id }).onConflictDoNothing();
   return profile;
 }
 

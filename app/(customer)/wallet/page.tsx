@@ -57,7 +57,7 @@ export default async function WalletPage() {
           </Link>
         </div>
         <div className="rounded-2xl bg-muted p-2">
-          <AccountRow last4={wallet.cardLast4} balanceCents={wallet.balanceCents} />
+          <AccountRow last4={wallet.cardLast4} balanceCents={wallet.balanceCents} href="/wallet/cards" />
         </div>
       </section>
 

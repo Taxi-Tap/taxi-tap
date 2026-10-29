@@ -81,7 +81,7 @@ Fares are priced by the server from `fare_bands`, never from the browser. Helper
 
 - One wallet per person: the Transfer screen sends to a previous recipient instead of moving money between two of your own cards.
 - Tap and QR scan call `simulateReader`; the camera and the signed QR / NFC tag handshake are not wired (TAX-43, `server/qr.ts`, `server/payments.ts`).
-- Home shows a drawn map; the Google map is TAX-68.
+- Home and Receipt use `components/maps/google-map.tsx`: the real map when `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` is set (it must be named exactly that on Vercel, and is read at build time), a drawn street grid otherwise. Route and payment pins for owners are TAX-68.
 
 - `join_code` gives immediate access: there is no admin approval step yet. Add a pending status on `memberships` with the TAX-34 actions.
 - `logo_url` holds a small (128 px) data URL, not a file in storage.

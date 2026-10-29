@@ -1,16 +1,16 @@
 import Link from "next/link";
 import { Search, Star, UserRound } from "lucide-react";
-import { MapBackdrop } from "@/components/personal/map-backdrop";
+import { GoogleMap } from "@/components/maps/google-map";
 import { ModeToggle } from "@/components/personal/mode-toggle";
 
-// Home (Map). The real map arrives with TAX-68; for now the backdrop stands in for it.
+// Home (Map): the Google map when a key is set, a drawn street grid otherwise.
 export default async function HomePage({ searchParams }: { searchParams: Promise<{ mode?: string }> }) {
   const { mode } = await searchParams;
   const current = mode === "shop" ? "shop" : "taxi";
   return (
     <main className="relative h-[calc(100dvh-5rem)] overflow-hidden">
       <div className="absolute inset-0">
-        <MapBackdrop />
+        <GoogleMap />
       </div>
       <div className="relative flex items-center justify-between bg-background/90 px-3 py-2 backdrop-blur">
         <Link href="/account" aria-label="Account" className="inline-flex size-10 items-center justify-center rounded-full hover:bg-muted">

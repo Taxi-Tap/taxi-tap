@@ -11,22 +11,20 @@ import { fareBands, organisations, profiles, transactions, wallets } from "@/db/
 import { requireRole } from "@/server/auth";
 import { transfer } from "@/server/ledger";
 import { ensureWallet, notify, systemFundsWallet, walletNames, type WalletRow } from "@/server/wallet-helpers";
+import { cardNumber } from "@/lib/card";
 import { formatCents, randsToCents } from "@/lib/money";
 import type { ActionResult, TxCategory, TxView, WalletSummary } from "@/lib/personal-types";
 
 const MAX_RECHARGE_CENTS = 500_000;
 
-function toSummary(wallet: WalletRow): WalletSummary {
-  return {
-    walletId: wallet.id,
-    balanceCents: wallet.balanceCents,
-    cardLast4: wallet.id.replace(/\D/g, "").padEnd(4, "0").slice(0, 4),
-  };
+function toSummary(wallet: WalletRow, holder: string): WalletSummary {
+  const number = cardNumber(wallet.id);
+  return { walletId: wallet.id, balanceCents: wallet.balanceCents, cardLast4: number.slice(-4), cardNumber: number, holder };
 }
 
 export async function getWalletSummary(): Promise<WalletSummary> {
   const { profile } = await requireRole("customer");
-  return toSummary(await ensureWallet("profile", profile.id));
+  return toSummary(await ensureWallet("profile", profile.id), profile.name);
 }
 
 const CATEGORY: Record<string, TxCategory> = {

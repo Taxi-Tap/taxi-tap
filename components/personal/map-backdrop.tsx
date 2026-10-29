@@ -1,8 +1,8 @@
 import { cn } from "@/lib/utils";
 
 /**
- * Stand-in for the Google map (the maps key and RouteMap belong to TAX-68).
- * Draws a grey street grid so the Home and Receipt screens match the designs.
+ * Fallback for GoogleMap when there is no API key or the script cannot load.
+ * Draws a grey street grid so Home and Receipt still look right.
  */
 export function MapBackdrop({ className }: { className?: string }) {
   return (

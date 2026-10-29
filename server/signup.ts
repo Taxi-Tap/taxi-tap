@@ -100,11 +100,13 @@ export async function registerPersonal(input: RegisterPersonalInput): Promise<Re
     return failure(err);
   }
   try {
-    await db.insert(profiles).values({
-      authUserId: authUser.id,
-      name: authUser.name,
-      phone: v.phone || null,
-      role: "customer",
+    await db.transaction(async (tx) => {
+      const [profile] = await tx
+        .insert(profiles)
+        .values({ authUserId: authUser.id, name: authUser.name, phone: v.phone || null, role: "customer" })
+        .returning({ id: profiles.id });
+      // Every account starts with one virtual card (a wallet).
+      await tx.insert(wallets).values({ ownerType: "profile", ownerId: profile.id });
     });
     return { ok: true, role: "customer", needsVerification: emailConfigured, email: v.email };
   } catch (err) {
@@ -157,7 +159,10 @@ export async function registerBusiness(input: RegisterBusinessInput): Promise<Re
         })
         .returning({ id: organisations.id });
       await tx.insert(memberships).values({ profileId: profile.id, organisationId: org.id, role });
-      await tx.insert(wallets).values({ ownerType: "organisation", ownerId: org.id });
+      await tx.insert(wallets).values([
+        { ownerType: "profile", ownerId: profile.id },
+        { ownerType: "organisation", ownerId: org.id },
+      ]);
     });
     return { ok: true, role, needsVerification: emailConfigured, email: v.email, joinCode };
   } catch (err) {
@@ -212,6 +217,7 @@ export async function registerStaff(input: RegisterStaffInput): Promise<Register
         .values({ authUserId: authUser.id, name: authUser.name, phone: v.phone || null, role: v.role })
         .returning({ id: profiles.id });
       await tx.insert(memberships).values({ profileId: profile.id, organisationId: org.id, role: v.role });
+      await tx.insert(wallets).values({ ownerType: "profile", ownerId: profile.id });
     });
     return { ok: true, role: v.role, needsVerification: emailConfigured, email: v.email };
   } catch (err) {

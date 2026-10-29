@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Check, X } from "lucide-react";
 import { AppHeader } from "@/components/personal/app-header";
-import { MapBackdrop } from "@/components/personal/map-backdrop";
+import { GoogleMap } from "@/components/maps/google-map";
 import { ReportIssueButton } from "@/components/personal/report-issue-button";
 import { Button } from "@/components/ui/button";
 import { rands } from "@/lib/format";
@@ -33,7 +33,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
   return (
     <main>
       <div className="relative h-40 overflow-hidden">
-        <MapBackdrop />
+        <GoogleMap />
         <div className="absolute inset-x-0 top-0 bg-background/80 backdrop-blur">
           <AppHeader title="Receipt" backHref="/history" />
         </div>

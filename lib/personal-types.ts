@@ -25,6 +25,9 @@ export type WalletSummary = {
   balanceCents: number;
   /** Last four digits shown on the virtual card. */
   cardLast4: string;
+  /** Full demo card number (16 digits, ungrouped) and the name printed on the card. */
+  cardNumber: string;
+  holder: string;
 };
 
 export type ActionResult<T = object> =

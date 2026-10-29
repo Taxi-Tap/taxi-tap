@@ -36,6 +36,13 @@
       "when": 1793274755801,
       "tag": "0004_personal_account",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793275669346,
+      "tag": "0005_backfill_profile_wallets",
+      "breakpoints": true
     }
   ]
 }
