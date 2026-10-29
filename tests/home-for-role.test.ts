@@ -5,7 +5,7 @@ describe("homeForRole", () => {
   it.each([
     ["customer", "/home"],
     ["driver", "/trip"],
-    ["merchant_staff", "/request"],
+    ["merchant_staff", "/shop"],
     ["owner", "/dashboard"],
     ["association_admin", "/admin"],
   ] as const)("routes %s to %s", (role, expectedHome) => {

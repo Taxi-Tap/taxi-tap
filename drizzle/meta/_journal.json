@@ -43,6 +43,13 @@
       "when": 1793275669346,
       "tag": "0005_backfill_profile_wallets",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793280092170,
+      "tag": "0006_driver_and_merchant",
+      "breakpoints": true
     }
   ]
 }

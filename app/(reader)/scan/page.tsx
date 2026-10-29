@@ -1,5 +1,16 @@
-import { PlaceholderPage } from "@/components/placeholder-page";
+import { redirect } from "next/navigation";
+import { AppHeader } from "@/components/personal/app-header";
+import { FareReader } from "@/components/work/fare-reader";
+import { getActiveTrip } from "@/server/driver";
 
-export default function ReaderScanPage() {
-  return <PlaceholderPage title="Scan" description="Scan a passenger's QR code or NFC tag to take a fare." />;
+// Reader: charge fares on the current trip. Needs a trip, so start one from Shift first.
+export default async function ReaderPage() {
+  const trip = await getActiveTrip();
+  if (!trip) redirect("/shift");
+  return (
+    <main>
+      <AppHeader title="Reader" hideBack />
+      <FareReader trip={trip} />
+    </main>
+  );
 }

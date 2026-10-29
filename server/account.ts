@@ -7,6 +7,7 @@ import { and, count, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { notifications, profiles } from "@/db/schema";
 import { auth, requireUser } from "@/server/auth";
+import { memberOrg } from "@/server/work-helpers";
 import type { AccountView, ActionResult } from "@/lib/personal-types";
 
 export async function getAccount(): Promise<AccountView> {
@@ -54,4 +55,11 @@ export async function changePassword(input: { currentPassword: string; newPasswo
   } catch {
     return { ok: false, error: "Your current password is not correct." };
   }
+}
+
+/** Name of the company the signed-in staff member belongs to, if any. */
+export async function getCompanyName(): Promise<string | null> {
+  const { profile } = await requireUser();
+  const org = await memberOrg(profile.id);
+  return org?.name ?? null;
 }

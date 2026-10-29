@@ -12,7 +12,7 @@ export function homeForRole(role: AppRole): string {
     case "driver":
       return "/trip";
     case "merchant_staff":
-      return "/request";
+      return "/shop";
     case "owner":
       return "/dashboard";
     case "association_admin":

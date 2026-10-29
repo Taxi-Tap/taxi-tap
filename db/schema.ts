@@ -46,6 +46,12 @@ export const txKindEnum = pgEnum("tx_kind", [
   "merchant",
   "transfer",
 ]);
+export const requestStatusEnum = pgEnum("request_status", [
+  "pending",
+  "paid",
+  "cancelled",
+  "expired",
+]);
 export const notificationKindEnum = pgEnum("notification_kind", [
   "payment",
   "topup",
@@ -170,6 +176,9 @@ export const vehicles = pgTable("vehicles", {
     .notNull()
     .references(() => organisations.id),
   routeId: uuid("route_id").references(() => routes.id),
+  // Shown on the shift and trip screens, e.g. "Toyota Quantum • 15 seats".
+  model: text("model").default("Minibus taxi").notNull(),
+  seats: integer("seats").default(15).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -260,5 +269,22 @@ export const nfcTags = pgTable("nfc_tags", {
     .notNull()
     .references(() => wallets.id),
   active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// A merchant asks for an amount; the customer pays it by entering or scanning the code.
+export const paymentRequests = pgTable("payment_requests", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  organisationId: uuid("organisation_id")
+    .notNull()
+    .references(() => organisations.id),
+  staffId: uuid("staff_id")
+    .notNull()
+    .references(() => profiles.id),
+  amountCents: integer("amount_cents").notNull(),
+  code: text("code").notNull().unique(),
+  status: requestStatusEnum("status").default("pending").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  transactionId: uuid("transaction_id").references(() => transactions.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

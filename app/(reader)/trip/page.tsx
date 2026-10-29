@@ -1,18 +1,74 @@
-"use client";
-
 import Link from "next/link";
-import { useState } from "react";
-import { ArrowLeft, CheckCircle2, QrCode, Smartphone } from "lucide-react";
+import { BusFront, Route as RouteIcon, UserRound } from "lucide-react";
+import { AppHeader } from "@/components/personal/app-header";
+import { Button } from "@/components/ui/button";
+import { rands } from "@/lib/format";
+import { getAccount } from "@/server/account";
+import { getActiveTrip, getTakings } from "@/server/driver";
 
-const money=(n:number)=>new Intl.NumberFormat("en-ZA",{style:"currency",currency:"ZAR"}).format(n);
-export default function TripPage(){
- const [taxi,setTaxi]=useState("TT-101");
- const [fare,setFare]=useState("18");
- const [reader,setReader]=useState<"QR"|"NFC">("QR");
- const [phase,setPhase]=useState<"idle"|"ready"|"paid">("idle");
- const [notice,setNotice]=useState("");
- const [priceConfirmed,setPriceConfirmed]=useState(false);
- function start(){const n=Number(fare);if(!Number.isFinite(n)||n<=0){setNotice("Enter a valid fare first.");return;}if(n>50&&!priceConfirmed){setPriceConfirmed(true);setNotice("Please confirm the fare of "+money(n)+" before starting the reader.");return;}setPhase("ready");setNotice(reader==="QR"?"QR scanner simulation is ready. No camera is being accessed.":"NFC reader simulation is ready. No NFC hardware is being accessed.");}
- function confirm(){setPhase("paid");setNotice(`Demo fare ${money(Number(fare))} marked as paid for ${taxi} using ${reader}. No money moved.`);}
- return <main className="min-h-screen bg-slate-50 text-slate-900"><header className="border-b bg-white"><div className="mx-auto flex h-16 max-w-4xl items-center justify-between px-4"><Link href="/" className="inline-flex items-center gap-2 text-sm text-slate-600"><ArrowLeft className="size-4"/> Home</Link><span className="font-semibold text-[#102a43]">Driver reader</span><Link href="/profile" className="text-sm text-slate-600">Profile</Link></div></header><div className="mx-auto max-w-4xl px-4 py-7"><p className="text-sm font-medium text-teal-700">DRIVER / READER TOOLS</p><h1 className="mt-1 text-2xl font-semibold">Record a taxi fare</h1><p className="mt-2 text-sm text-slate-600">Simulate a passenger payment using a QR code or contactless NFC reader.</p><div className="mt-6 grid gap-5 md:grid-cols-2"><section className="rounded-xl border bg-white p-5"><h2 className="font-semibold">Trip details</h2><label className="mt-4 block text-sm font-medium">Taxi ID</label><select value={taxi} onChange={e=>setTaxi(e.target.value)} className="mt-1 min-h-11 w-full rounded-lg border px-3"><option>TT-101</option><option>TT-204</option><option>TT-317</option><option>TT-422</option></select><label className="mt-4 block text-sm font-medium">Fare (ZAR)</label><input type="number" min=".01" step=".01" value={fare} onChange={e=>{setFare(e.target.value);setPhase("idle");setPriceConfirmed(false);}} className="mt-1 min-h-11 w-full rounded-lg border px-3"/><div className="mt-4 grid grid-cols-2 gap-2"><button onClick={()=>{setReader("QR");setPhase("idle");}} className={`rounded-lg border p-3 text-sm font-medium ${reader==="QR"?"border-teal-700 bg-teal-50":"border-slate-200"}`}><QrCode className="mr-2 inline size-4"/>QR scan</button><button onClick={()=>{setReader("NFC");setPhase("idle");}} className={`rounded-lg border p-3 text-sm font-medium ${reader==="NFC"?"border-teal-700 bg-teal-50":"border-slate-200"}`}><Smartphone className="mr-2 inline size-4"/>NFC tap</button></div><button onClick={start} className="mt-4 min-h-11 w-full rounded-lg bg-[#102a43] px-4 text-sm font-semibold text-white">{Number(fare)>50&&!priceConfirmed?"Confirm price":"Start simulated reader"}</button></section><section className="rounded-xl border bg-white p-5"><h2 className="font-semibold">{reader==="QR"?"QR scanner":"NFC reader"}</h2><div className="mt-4 flex min-h-48 flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 p-5 text-center">{phase==="idle"?<><span className="flex size-14 items-center justify-center rounded-xl bg-white"><QrCode className="size-8 text-slate-500"/></span><p className="mt-3 text-sm font-medium">Reader not started</p><p className="mt-1 text-xs text-slate-500">Start the reader to simulate a payment.</p></>:phase==="ready"?<><span className="flex size-16 items-center justify-center rounded-xl bg-teal-50 text-teal-800">{reader==="QR"?<QrCode className="size-9"/>:<Smartphone className="size-9"/>}</span><p className="mt-3 text-sm font-semibold">{reader==="QR"?"QR scan detected (simulated)":"NFC tap detected (simulated)"}</p><p className="mt-1 text-sm text-slate-600">{taxi} · {money(Number(fare)||0)}</p><button onClick={confirm} className="mt-4 min-h-10 rounded-lg bg-teal-700 px-4 text-sm font-semibold text-white">Confirm demo payment</button></>:<><CheckCircle2 className="size-12 text-emerald-600"/><p className="mt-3 text-sm font-semibold">Demo payment complete</p><p className="mt-1 text-xs text-slate-500">This is a visual simulation only.</p><button onClick={()=>{setPhase("idle");setNotice("");setPriceConfirmed(false);}} className="mt-4 rounded-lg border px-4 py-2 text-sm font-medium">Start another trip</button></>}</div>{notice&&<p role="status" className="mt-3 rounded-lg bg-teal-50 p-3 text-sm text-teal-900">{notice}</p>}</section></div><p className="mt-5 text-xs text-slate-500">No camera, NFC hardware, backend, or real payment is connected in this prototype.</p></div></main>;
+// Driver home: the trip in progress, or a prompt to start your shift.
+export default async function DriverHomePage() {
+  const [account, trip, takings] = await Promise.all([getAccount(), getActiveTrip(), getTakings()]);
+  const first = account.name.split(" ")[0];
+  return (
+    <main>
+      <AppHeader
+        title="Home"
+        hideBack
+        left={
+          <Link href="/driver" aria-label="Menu" className="inline-flex size-10 items-center justify-center rounded-full hover:bg-muted">
+            <UserRound className="size-6" />
+          </Link>
+        }
+      />
+      <div className="px-4 pt-6">
+        <h2 className="text-2xl font-bold tracking-tight">Hi {first}</h2>
+        <p className="mt-1 text-sm text-muted-foreground">{trip ? "You are on a trip." : "Start your shift when you are ready to take passengers."}</p>
+
+        {trip ? (
+          <section aria-label="Current trip" className="mt-5 rounded-2xl bg-muted p-4">
+            <div className="flex items-center gap-3">
+              <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-orange-400">
+                <BusFront className="size-6" aria-hidden="true" />
+              </span>
+              <div className="min-w-0">
+                <p className="truncate text-lg font-bold">{trip.vehicle.registration}</p>
+                <p className="flex items-center gap-1 truncate text-xs text-muted-foreground">
+                  <RouteIcon className="size-3" aria-hidden="true" /> {trip.route.name}
+                </p>
+              </div>
+            </div>
+            <dl className="mt-4 grid grid-cols-2 gap-3">
+              <div>
+                <dt className="text-xs font-bold text-muted-foreground">This trip</dt>
+                <dd className="text-xl font-bold">{rands(trip.totalCents)}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-bold text-muted-foreground">Passengers</dt>
+                <dd className="text-xl font-bold">{trip.passengers}</dd>
+              </div>
+            </dl>
+            <Button className="mt-4 h-12 w-full rounded-full text-base font-semibold" render={<Link href="/scan" />} nativeButton={false}>
+              Open reader
+            </Button>
+          </section>
+        ) : (
+          <Button className="mt-5 h-12 w-full rounded-full text-base font-semibold" render={<Link href="/shift" />} nativeButton={false}>
+            Start your shift
+          </Button>
+        )}
+
+        <section aria-label="Today" className="mt-6 rounded-2xl border p-4">
+          <p className="text-xs font-bold text-muted-foreground">Collected today</p>
+          <p className="text-3xl font-bold">{rands(takings.todayCents)}</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {takings.trips} {takings.trips === 1 ? "trip" : "trips"} {"·"} {takings.passengers} passengers {"·"}{" "}
+            <Link href="/takings" className="font-semibold underline">
+              See takings
+            </Link>
+          </p>
+        </section>
+      </div>
+    </main>
+  );
 }

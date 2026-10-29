@@ -7,7 +7,8 @@
 import { randomUUID } from "node:crypto";
 import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { fareBands, organisations, routes, wallets } from "@/db/schema";
+import { fareBands, organisations, paymentRequests, routes, wallets } from "@/db/schema";
+import { settleRequest } from "@/server/payment-requests";
 import { requireRole } from "@/server/auth";
 import { transfer } from "@/server/ledger";
 import { ensureWallet, notify } from "@/server/wallet-helpers";
@@ -59,8 +60,23 @@ export async function simulateReader(input: { bandId?: string; shopId?: string }
   return { ok: true, quote: { payeeWalletId: wallet.id, payeeName: merchant.name, amountCents: DEFAULT_SHOP_CENTS, label: merchant.name } };
 }
 
+/** Customer enters a merchant code. Returns what they would pay. */
+export async function lookupPaymentCode(code: string): Promise<ActionResult<{ requestId: string; company: string; amountCents: number }>> {
+  await requireRole("customer");
+  const clean = code.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (clean.length !== 6) return { ok: false, error: "Enter all 6 characters of the code." };
+  const [req] = await db.select().from(paymentRequests).where(eq(paymentRequests.code, clean)).limit(1);
+  if (!req || req.status !== "pending" || req.expiresAt.getTime() < Date.now()) {
+    return { ok: false, error: "That code is not valid. It may have expired or already been paid." };
+  }
+  const [org] = await db.select({ name: organisations.name }).from(organisations).where(eq(organisations.id, req.organisationId)).limit(1);
+  return { ok: true, requestId: req.id, company: org?.name ?? "Merchant", amountCents: req.amountCents };
+}
+
 export async function payReader(input: {
   method: "qr" | "nfc";
+  /** Pay a merchant request: amount and payee come from the request, not from the browser. */
+  requestId?: string;
   payeeWalletId: string;
   bandId?: string;
   amountCents: number;
@@ -68,6 +84,13 @@ export async function payReader(input: {
   key?: string;
 }): Promise<ActionResult<{ txId: string }>> {
   const { profile } = await requireRole("customer");
+  if (input.requestId) {
+    const mine = await ensureWallet("profile", profile.id);
+    const r = await settleRequest({ requestId: input.requestId, payerWalletId: mine.id, method: input.method });
+    if (!r.ok) return { ok: false, error: r.error };
+    await notify(profile.id, "receipt", "Trip receipt ready", `${formatCents(r.amountCents)} payment completed`);
+    return { ok: true, txId: r.txId };
+  }
   const tip = input.tipCents ?? 0;
   if (!Number.isSafeInteger(tip) || tip < 0 || tip > MAX_TIP_CENTS) return { ok: false, error: "Enter a valid tip." };
 

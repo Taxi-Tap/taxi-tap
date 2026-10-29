@@ -8,3 +8,10 @@ export function newJoinCode() {
   for (let i = 0; i < 9; i++) code += CODE_ALPHABET[randomInt(CODE_ALPHABET.length)];
   return code;
 }
+
+/** A 6-character code a customer types to pay a merchant request, e.g. K7M2QX. */
+export function newRequestCode() {
+  let code = "";
+  for (let i = 0; i < 6; i++) code += CODE_ALPHABET[randomInt(CODE_ALPHABET.length)];
+  return code;
+}

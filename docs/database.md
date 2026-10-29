@@ -7,7 +7,7 @@ Which branch has what (checked when this page was last updated):
 | Branch | Migrations in `drizzle/` | Notes |
 | --- | --- | --- |
 | `main` | `0000` | Behind: only the BetterAuth tables. Takes `dev` at release time. |
-| `dev` | `0000` to `0004` | Full schema. Work happens here. |
+| `dev` | `0000` to `0006` | Full schema. Work happens here. |
 
 ## Migration history
 
@@ -17,6 +17,7 @@ Which branch has what (checked when this page was last updated):
 | `0001_flawless_sleepwalker.sql` | The 12 app tables, enums, foreign keys, wallet and payment constraints | TAX-89 |
 | `0002_loud_silk_fever.sql` | `transactions.amount_cents` nullable, `requested_amount` for failed attempts (reliability test) | TAX-66 |
 | `0003_auth_2fa_and_org_join.sql` | `two_factor` table, `user.two_factor_enabled`, `organisations.slug` / `logo_url` / `location` / `join_code` | TAX-32, TAX-34 |
+| `0006_driver_and_merchant.sql` | `payment_requests` table and `request_status` enum, `vehicles.model` / `seats` | TAX-48, TAX-50, TAX-55 |
 | `0004_personal_account.sql` | `notifications` table, `notification_kind` enum, `tx_kind` gains `transfer`, `transactions.note`, `profiles.sms_alerts` / `promotions` / `language` | TAX-39, TAX-54 |
 
 Apply with `npm run db:migrate` against your own Neon branch. The tests in `tests/ledger.test.ts` and `tests/reliability.test.ts` use that branch, so **they fail until the latest migration is applied**.
@@ -47,6 +48,7 @@ Apply with `npm run db:migrate` against your own Neon branch. The tests in `test
 | `trips` | A driver's trip on a route | `vehicle_id`, `driver_id`, `route_id` |
 | `wallets` | One per profile or organisation | unique (`owner_type`, `owner_id`), `balance_cents >= 0` |
 | `transactions` | Every payment attempt | `idempotency_key` (unique), `kind` (`fare`, `topup`, `merchant`, `transfer`), `status`, `note`, `staff_id`, `latitude` / `longitude` |
+| `payment_requests` | A merchant asks for an amount; the customer pays it with a 6-character code | `organisation_id`, `staff_id`, `code` (unique), `status`, `expires_at`, `transaction_id` |
 | `notifications` | Per-profile inbox: payment received, recharge, receipt ready, security, promo | `profile_id`, `kind`, `read_at` |
 | `qr_tokens` | Short-lived signed QR payloads | `nonce` (unique), `expires_at`, `used_at` |
 | `nfc_tags` | NFC tag to wallet | `serial` (unique), `active` |
@@ -76,6 +78,19 @@ A Google sign-in with no profile gets a `customer` profile on first load (`ensur
 | Profile, Settings, Notifications, Help | `getAccount`, `updateSettings`, `changePassword`, `listNotifications` | `profiles`, `notifications`, BetterAuth tables |
 
 Fares are priced by the server from `fare_bands`, never from the browser. Helpers that take arbitrary ids live in `server/wallet-helpers.ts`, which is not a `"use server"` file, so the browser cannot call them.
+
+## Driver and merchant screens and the data they use
+
+| Account | Screens | Server actions | Tables |
+| --- | --- | --- | --- |
+| Driver (`server/driver.ts`) | Home (`/trip`), Shift, Start trip, Reader (`/scan`), Takings, Menu | `getShiftOptions`, `startTrip`, `endTrip`, `getActiveTrip`, `chargeFare`, `getTakings` | `vehicles`, `routes`, `fare_bands`, `trips`, `transactions` (kind `fare`, `staff_id` = the driver, `trip_id`) |
+| Merchant (`server/merchant.ts`) | Home (`/shop`), Request payment, Sales, Menu (`/store`) | `getShopHome`, `createPaymentRequest`, `getPaymentRequest`, `cancelPaymentRequest`, `simulateCustomerPays`, `listSales` | `payment_requests`, `transactions` (kind `merchant`), organisation `wallets` |
+| Customer | Pay > Enter a merchant code | `lookupPaymentCode`, `payReader` with `requestId` (`server/pay.ts`) | `payment_requests`, `transactions` |
+
+- A driver can only start a shift with vehicles owned by their company, on routes owned by their company or its association. Fares always credit the **owner company wallet**, never the driver.
+- The reader charges from the "Demo funds (system)" wallet as a simulated passenger until the signed QR and NFC handshake exists (TAX-43, `server/qr.ts`). Each charge is stamped with the phone location when the driver allows it.
+- A payment request is settled once: `settleRequest` uses the key `request:<id>`, so a second payer cannot be charged. Requests last 10 minutes.
+- The merchant screen "Demo: simulate customer paying" pays from the system wallet for solo testing.
 
 ## Owner screens and the data they use
 

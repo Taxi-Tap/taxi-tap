@@ -16,6 +16,8 @@ const TIPS = [0, 500, 1000, 2000];
 export function ConfirmPayment(props: {
   method: "qr" | "nfc";
   payeeWalletId: string;
+  /** Set when paying a merchant code: the server takes the amount and payee from the request. */
+  requestId?: string;
   payeeName: string;
   label: string;
   bandId?: string;
@@ -39,6 +41,7 @@ export function ConfirmPayment(props: {
       const r = await payReader({
         method: props.method,
         payeeWalletId: props.payeeWalletId,
+        requestId: props.requestId,
         bandId: props.bandId,
         amountCents: props.amountCents,
         tipCents: tip,
@@ -61,7 +64,7 @@ export function ConfirmPayment(props: {
         {props.payeeName}
         {props.label && props.label !== props.payeeName ? ` · ${props.label}` : ""}
       </p>
-      <div className="mt-2 flex flex-col items-center">
+      {props.requestId ? null : <div className="mt-2 flex flex-col items-center">
         <button
           type="button"
           onClick={() => setShowTips((v) => !v)}
@@ -79,7 +82,7 @@ export function ConfirmPayment(props: {
             ))}
           </div>
         ) : null}
-      </div>
+      </div>}
 
       <div className="mt-8 flex items-center justify-between">
         <h2 className="text-sm font-bold">Accounts</h2>
