@@ -46,7 +46,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       pathname.startsWith("/dashboard") || pathname.startsWith("/trip") ? "owner" :
       pathname.startsWith("/profile") ? null : null;
 
-    if (pathname === "/" || (expectedRole && expectedRole !== session.role)) {
+    if (expectedRole && expectedRole !== session.role) {
       router.replace(landing[session.role]);
       return;
     }
