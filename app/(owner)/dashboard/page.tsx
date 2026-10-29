@@ -1,36 +1,105 @@
-"use client";
-
-/* eslint-disable react-hooks/set-state-in-effect -- Browser-only demo state is hydrated from localStorage after mount; sample data uses runtime timestamps. */
-
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, BusFront, CircleDollarSign, QrCode, Smartphone, TrendingUp } from "lucide-react";
+import { Banknote, BusFront, CircleHelp, Ellipsis, Plus, Repeat, Send, Store, UserRound } from "lucide-react";
+import { AppHeader } from "@/components/personal/app-header";
+import { AccountRow } from "@/components/personal/virtual-card";
+import { SampleBadge } from "@/components/owner/sample-badge";
+import { rands } from "@/lib/format";
+import { getOwnerWallet } from "@/server/company";
 
-type Trip = {id:string; taxi:string; route:string; fare:number; fee:number; method:"QR"|"NFC"; at:string};
-const KEY="taxi-tap-demo-owner-trips";
-const taxis=[{id:"TT-101",driver:"Christoffel du Toit",route:"Central Station – Umlazi"},{id:"TT-204",driver:"Londa Mavimbela",route:"CBD – KwaMashu"},{id:"TT-317",driver:"Lethukuthula Gumede",route:"Workshop – Pinetown"},{id:"TT-422",driver:"Zanele K.",route:"CBD – Chatsworth"}];
-const money=(n:number)=>new Intl.NumberFormat("en-ZA",{style:"currency",currency:"ZAR"}).format(n);
-function demoTrips():Trip[]{const now=Date.now();return Array.from({length:18},(_,i)=>{const taxi=taxis[i%taxis.length];const fare=taxi.id==="TT-101"?23000:taxi.id==="TT-204"?1800:taxi.id==="TT-317"?2200:[15,18,20,25,12,22][i%6];return{id:"DEMO-"+(700+i),taxi:taxi.id,route:taxi.route,fare,fee:Number((fare*.06).toFixed(2)),method:i%2?"QR":"NFC",at:new Date(now-i*1000*60*37).toISOString()};});}
-export default function DashboardPage(){
- const [trips,setTrips]=useState<Trip[]>([]);
- const [ready,setReady]=useState(false);
- const [taxi,setTaxi]=useState(taxis[0].id);
- const [fare,setFare]=useState("20");
- const [method,setMethod]=useState<"QR"|"NFC">("QR");
- const [notice,setNotice]=useState("");
- const [fuelOpen,setFuelOpen]=useState(false);
- const [fuelAmount,setFuelAmount]=useState("450");
- const [fuelToday,setFuelToday]=useState(0);
- useEffect(()=>{try{const raw=localStorage.getItem(KEY);setTrips(raw?JSON.parse(raw) as Trip[]:demoTrips());const rawFuel=localStorage.getItem("taxi-tap-demo-fuel");if(rawFuel){const f=JSON.parse(rawFuel) as {date:string;amount:number};if(f.date===new Date().toLocaleDateString("en-CA"))setFuelToday(f.amount);else setFuelOpen(true);}else setFuelOpen(true);}catch{setTrips(demoTrips());setFuelOpen(true);}setReady(true);},[]);
- useEffect(()=>{if(ready){try{localStorage.setItem(KEY,JSON.stringify(trips));}catch{}}},[trips,ready]);
- const stats=useMemo(()=>({gross:trips.reduce((s,t)=>s+t.fare,0),fees:trips.reduce((s,t)=>s+t.fee,0),count:trips.length}),[trips]);
- function saveFuel(e:React.FormEvent){e.preventDefault();const value=Number(fuelAmount);if(!Number.isFinite(value)||value<0)return;const date=new Date().toLocaleDateString("en-CA");localStorage.setItem("taxi-tap-demo-fuel",JSON.stringify({date,amount:value}));setFuelToday(value);setFuelOpen(false);setNotice("Today\u2019s demo fuel spend saved.");}
- function recordTrip(e:React.FormEvent){e.preventDefault();const value=Number(fare);if(!Number.isFinite(value)||value<=0){setNotice("Enter a fare above R0.");return;}const selected=taxis.find(t=>t.id===taxi)!;const trip:Trip={id:"SIM-"+Date.now(),taxi,route:selected.route,fare:value,fee:Number((value*.06).toFixed(2)),method,at:new Date().toISOString()};setTrips([trip,...trips]);setNotice(`Simulated ${method} fare recorded for ${taxi}.`);}
- return <main className="min-h-screen bg-slate-50 text-slate-900"><header className="border-b bg-white"><div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4"><Link href="/" className="inline-flex items-center gap-2 text-sm text-slate-600"><ArrowLeft className="size-4"/> Home</Link><span className="flex items-center gap-2 font-semibold text-[#102a43]"><BusFront className="size-5"/> Association dashboard</span><Link href="/profile" className="text-sm text-slate-600">Profile</Link></div></header>
- <div className="mx-auto max-w-6xl px-4 py-7"><p className="text-sm font-medium text-teal-700">TAXI OWNER WORKSPACE</p><h1 className="mt-1 text-2xl font-semibold">Fleet income & operations</h1><p className="mt-2 text-sm text-slate-600">Review income by taxi and record simulated QR/NFC fares. All figures are demo data.</p>
- <div className="mt-6 grid gap-3 sm:grid-cols-4"><div className="rounded-xl border bg-white p-4"><p className="text-sm text-slate-500">Total fares recorded</p><p className="mt-2 text-2xl font-semibold">{money(stats.gross)}</p></div><div className="rounded-xl border bg-white p-4"><p className="text-sm text-slate-500">Illustrative Taxi Tap fees</p><p className="mt-2 text-2xl font-semibold">{money(stats.fees)}</p><p className="mt-1 text-xs text-slate-500">Assumed 6%, not a confirmed tariff</p></div><div className="rounded-xl border bg-white p-4"><p className="text-sm text-slate-500">Trips recorded</p><p className="mt-2 text-2xl font-semibold">{stats.count}</p></div></div>
- <section className="rounded-xl border bg-white p-4"><p className="text-sm text-slate-500">Fuel spend today</p><p className="mt-2 text-2xl font-semibold">{money(fuelToday)}</p><button onClick={()=>setFuelOpen(true)} className="mt-2 text-sm text-teal-700 underline">Update fuel</button></section><section className="mt-6 overflow-hidden rounded-xl border bg-white"><div className="border-b px-5 py-4"><h2 className="font-semibold">Income by taxi</h2><p className="mt-1 text-sm text-slate-500">Gross fares, estimated platform fee, and net after illustrative fee.</p></div><div className="overflow-x-auto"><table className="w-full min-w-[680px] text-left text-sm"><thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-5 py-3">Taxi / driver</th><th className="px-5 py-3">Trips</th><th className="px-5 py-3">Gross fares</th><th className="px-5 py-3">Est. fee</th><th className="px-5 py-3">Net fares</th></tr></thead><tbody className="divide-y">{taxis.map(t=>{const own=trips.filter(x=>x.taxi===t.id);const gross=own.reduce((s,x)=>s+x.fare,0);const fees=own.reduce((s,x)=>s+x.fee,0);return <tr key={t.id}><td className="px-5 py-4"><p className="font-semibold">{t.id}</p><p className="mt-1 text-xs text-slate-500">{t.driver} · {t.route}</p></td><td className="px-5 py-4">{own.length}</td><td className="px-5 py-4 font-medium">{money(gross)}</td><td className="px-5 py-4">{money(fees)}</td><td className="px-5 py-4 font-semibold">{money(gross-fees)}</td></tr>})}</tbody></table></div></section>
- <div className="mt-6 grid gap-5 lg:grid-cols-[.8fr_1.2fr]"><form onSubmit={recordTrip} className="rounded-xl border bg-white p-5"><h2 className="font-semibold">Simulate a fare</h2><p className="mt-1 text-sm text-slate-500">Use this to test the owner reporting.</p><label className="mt-4 block text-sm font-medium">Taxi</label><select value={taxi} onChange={e=>setTaxi(e.target.value)} className="mt-1 min-h-11 w-full rounded-lg border px-3">{taxis.map(t=><option key={t.id} value={t.id}>{t.id} · {t.driver}</option>)}</select><label className="mt-3 block text-sm font-medium">Fare (ZAR)</label><input type="number" min=".01" step=".01" value={fare} onChange={e=>setFare(e.target.value)} className="mt-1 min-h-11 w-full rounded-lg border px-3"/><label className="mt-3 block text-sm font-medium">Reader type</label><div className="mt-2 grid grid-cols-2 gap-2"><button type="button" onClick={()=>setMethod("QR")} className={`rounded-lg border p-3 text-sm font-medium ${method==="QR"?"border-teal-700 bg-teal-50":"border-slate-200"}`}><QrCode className="mr-2 inline size-4"/>Simulated QR</button><button type="button" onClick={()=>setMethod("NFC")} className={`rounded-lg border p-3 text-sm font-medium ${method==="NFC"?"border-teal-700 bg-teal-50":"border-slate-200"}`}><Smartphone className="mr-2 inline size-4"/>Simulated NFC</button></div><button className="mt-4 min-h-11 w-full rounded-lg bg-[#102a43] px-4 text-sm font-semibold text-white">Record demo fare</button>{notice&&<p role="status" className="mt-3 rounded-lg bg-teal-50 p-3 text-sm text-teal-900">{notice}</p>}</form>
- <section className="overflow-hidden rounded-xl border bg-white"><div className="border-b px-5 py-4"><h2 className="font-semibold">Recent fleet activity</h2></div><ul className="divide-y">{trips.slice(0,10).map(t=><li key={t.id} className="flex flex-wrap items-center gap-3 px-5 py-3"><span className="flex size-9 items-center justify-center rounded-lg bg-slate-100 text-slate-700">{t.method==="QR"?<QrCode className="size-4"/>:<Smartphone className="size-4"/>}</span><div className="min-w-0 flex-1"><p className="text-sm font-semibold">{t.taxi} · {t.method} demo fare</p><p className="mt-1 text-xs text-slate-500">{t.route} · {new Date(t.at).toLocaleString("en-ZA")}</p></div><span className="text-sm font-semibold">{money(t.fare)}</span></li>)}</ul></section></div>
- {fuelOpen&&<div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4"><form onSubmit={saveFuel} className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"><p className="text-sm font-semibold text-teal-700">DAILY FLEET CHECK-IN</p><h2 className="mt-2 text-xl font-semibold">How much was spent on fuel today?</h2><p className="mt-2 text-sm text-slate-600">Record the fleet\u2019s daily demo fuel costs.</p><label className="mt-4 block text-sm font-medium">Fuel spend (ZAR)</label><input type="number" min="0" step="0.01" value={fuelAmount} onChange={e=>setFuelAmount(e.target.value)} className="mt-1 min-h-11 w-full rounded-lg border px-3"/><button className="mt-4 min-h-11 w-full rounded-lg bg-[#102a43] px-4 text-sm font-semibold text-white">Save fuel spend</button><button type="button" onClick={()=>setFuelOpen(false)} className="mt-2 min-h-10 w-full rounded-lg border px-4 text-sm">Skip for now</button></form></div>}<p className="mt-5 text-xs text-slate-500">Data is stored locally in this browser for prototype testing only. Sample taxi, driver and income records are fictional.</p></div></main>;
+const ACTIONS = [
+  { label: "Send", icon: Send },
+  { label: "Transfer", icon: Repeat },
+  { label: "Deposit", icon: Banknote },
+  { label: "More", icon: Ellipsis },
+] as const;
+
+// Dashboard: the company wallet. Figures are sample data until the company has received payments.
+export default async function DashboardPage() {
+  const w = await getOwnerWallet();
+  return (
+    <main>
+      <AppHeader
+        title="Dashboard"
+        hideBack
+        left={
+          <Link href="/menu" aria-label="Menu" className="inline-flex size-10 items-center justify-center rounded-full hover:bg-muted">
+            <UserRound className="size-6" />
+          </Link>
+        }
+        right={
+          <Link href="/menu/help" aria-label="Help" className="inline-flex size-10 items-center justify-center rounded-full hover:bg-muted">
+            <CircleHelp className="size-6" />
+          </Link>
+        }
+      />
+
+      <section className="px-4 pt-8 text-center" aria-labelledby="balance-label">
+        <p id="balance-label" className="text-base">
+          Balance {w.sample ? <SampleBadge className="ml-1 align-middle" /> : null}
+        </p>
+        <p className="mt-2 text-4xl font-bold tracking-tight">{rands(w.balanceCents)}</p>
+      </section>
+
+      <dl className="mt-6 grid grid-cols-2 gap-3 px-4">
+        <div className="rounded-xl bg-muted p-4">
+          <dt className="text-xs font-bold">Current balance</dt>
+          <dd className="mt-1 text-sm">{rands(w.currentCents)}</dd>
+        </div>
+        <div className="rounded-xl bg-muted p-4">
+          <dt className="text-xs font-bold">Pending transaction</dt>
+          <dd className="mt-1 text-sm">+ {rands(w.pendingCents)}</dd>
+        </div>
+      </dl>
+
+      <ul className="mt-6 grid grid-cols-4 gap-3 px-4">
+        {ACTIONS.map(({ label, icon: Icon }) => (
+          <li key={label}>
+            <button
+              type="button"
+              disabled
+              title="Coming soon"
+              className="flex w-full flex-col items-center gap-2 rounded-xl border py-3 text-sm opacity-80 disabled:cursor-not-allowed"
+            >
+              <Icon className="size-6" aria-hidden="true" />
+              {label}
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      <section className="mt-8 px-4" aria-labelledby="accounts-heading">
+        <div className="mb-2 flex items-center justify-between">
+          <h2 id="accounts-heading" className="text-sm font-bold">Accounts</h2>
+          <Plus className="size-5" aria-hidden="true" />
+        </div>
+        <div className="rounded-2xl bg-muted p-2">
+          <AccountRow last4={w.cardLast4} balanceCents={w.balanceCents} />
+        </div>
+      </section>
+
+      <section className="mt-8 px-4" aria-labelledby="tx-heading">
+        <div className="mb-2 flex items-center justify-between">
+          <h2 id="tx-heading" className="text-sm font-bold">Transactions</h2>
+          <Link href="/team" className="text-sm">View more</Link>
+        </div>
+        <ul className="divide-y rounded-2xl bg-muted px-3">
+          {w.transactions.map((t) => {
+            const Icon = t.kind === "vehicle" ? BusFront : Store;
+            return (
+              <li key={t.id} className="flex items-center gap-3 py-3">
+                <span className={`flex size-10 shrink-0 items-center justify-center rounded-full ${t.kind === "vehicle" ? "bg-orange-400" : "bg-purple-300"}`}>
+                  <Icon className="size-5" aria-hidden="true" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-bold">{t.title}</span>
+                  <span className="block truncate text-xs text-muted-foreground">{t.subtitle}</span>
+                </span>
+                <span className="text-sm font-bold">{rands(t.amountCents)}</span>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+    </main>
+  );
 }

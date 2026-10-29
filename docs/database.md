@@ -77,7 +77,24 @@ A Google sign-in with no profile gets a `customer` profile on first load (`ensur
 
 Fares are priced by the server from `fare_bands`, never from the browser. Helpers that take arbitrary ids live in `server/wallet-helpers.ts`, which is not a `"use server"` file, so the browser cannot call them.
 
+## Owner screens and the data they use
+
+No schema change: owners use the tables above. Real rows are shown first; `lib/owner-mock.ts` adds placeholder people, vehicles, stalls, map pins, trips and routes marked **Sample**.
+
+| Screens | Server actions (`server/company.ts`, owner only) | Tables |
+| --- | --- | --- |
+| Dashboard (company wallet) | `getOwnerWallet` | `wallets` (organisation), `transactions`. Sample figures until the company has been paid |
+| Map | `getMapSummary` (pins are sample coordinates until payments carry GPS, TAX-53) | none yet |
+| Team, Contact, Profile | `getTeam`, `getTeamMember` | `memberships`, `profiles`, `vehicles`, `stalls` |
+| Fares and routes, Add / Edit route | `listOwnerRoutes`, `getOwnerRoute`, `createRoute`, `updateRoute` | `routes`, `fare_bands` |
+| Menu (owner profile), Company profile | `getCompany`, `regenerateJoinCode` | `profiles`, `organisations` (`join_code`) |
+
+The **company code** is `organisations.join_code`. Staff type it in the join flow at sign-up; the owner sees it on the Company profile and in "Add to team", and can replace it (the old code stops working at once). Companies created before join codes existed get a code the first time the owner opens the Company profile.
+
 ## Known gaps
+
+- Owner Send / Transfer / Deposit / More on the Dashboard are not wired.
+- Editing a route replaces its fares, so a route whose fares already have payments cannot be edited (past payments reference the fare). Add a new route instead.
 
 - One wallet per person: the Transfer screen sends to a previous recipient instead of moving money between two of your own cards.
 - Tap and QR scan call `simulateReader`; the camera and the signed QR / NFC tag handshake are not wired (TAX-43, `server/qr.ts`, `server/payments.ts`).

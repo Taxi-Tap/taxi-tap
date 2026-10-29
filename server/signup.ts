@@ -1,10 +1,10 @@
-import { randomInt } from "node:crypto";
 import { headers } from "next/headers";
 import { APIError } from "better-auth/api";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { auth, ensureProfile, getProfileForUser, type Profile } from "@/server/auth";
 import { emailConfigured } from "@/server/email";
+import { newJoinCode } from "@/server/join-code";
 import { db } from "@/db";
 import { user } from "@/db/auth-schema";
 import { memberships, organisations, profiles, wallets } from "@/db/schema";
@@ -31,14 +31,6 @@ const ROLE_FOR_NEW_ORG = {
   business: "owner",
   merchant: "merchant_staff",
 } as const satisfies Record<string, AppRole>;
-
-const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no 0/O/1/I
-
-function newJoinCode() {
-  let code = "";
-  for (let i = 0; i < 9; i++) code += CODE_ALPHABET[randomInt(CODE_ALPHABET.length)];
-  return code;
-}
 
 export async function getSignedInProfile(): Promise<SignedInProfile | null> {
   const session = await auth.api.getSession({ headers: await headers() });

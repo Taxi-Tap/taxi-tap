@@ -6,11 +6,11 @@ import { headers } from "next/headers";
 import { and, count, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { notifications, profiles } from "@/db/schema";
-import { auth, requireRole } from "@/server/auth";
+import { auth, requireUser } from "@/server/auth";
 import type { AccountView, ActionResult } from "@/lib/personal-types";
 
 export async function getAccount(): Promise<AccountView> {
-  const { profile, session } = await requireRole("customer");
+  const { profile, session } = await requireUser();
   const [row] = await db.select().from(profiles).where(eq(profiles.id, profile.id)).limit(1);
   const [unread] = await db
     .select({ n: count() })
@@ -30,7 +30,7 @@ export async function getAccount(): Promise<AccountView> {
 }
 
 export async function updateSettings(input: { smsAlerts?: boolean; promotions?: boolean }): Promise<ActionResult> {
-  const { profile } = await requireRole("customer");
+  const { profile } = await requireUser();
   const patch: { smsAlerts?: boolean; promotions?: boolean } = {};
   if (typeof input.smsAlerts === "boolean") patch.smsAlerts = input.smsAlerts;
   if (typeof input.promotions === "boolean") patch.promotions = input.promotions;
@@ -41,7 +41,7 @@ export async function updateSettings(input: { smsAlerts?: boolean; promotions?: 
 
 /** Change password for the signed-in user (BetterAuth checks the current one). */
 export async function changePassword(input: { currentPassword: string; newPassword: string }): Promise<ActionResult> {
-  await requireRole("customer");
+  await requireUser();
   if (input.newPassword.length < 8 || input.newPassword.length > 128) {
     return { ok: false, error: "Password must be 8 to 128 characters." };
   }
