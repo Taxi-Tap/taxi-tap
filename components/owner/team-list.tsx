@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { BusFront, Copy, Ellipsis, Store, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { createVehicle } from "@/server/company";
+import { createStall, createVehicle } from "@/server/fleet";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -41,6 +41,25 @@ export function TeamList({ team, joinCode }: { team: TeamEntry[]; joinCode: stri
   const [car, setCar] = useState({ registration: "", model: "Toyota Quantum", seats: "15" });
   const [carError, setCarError] = useState("");
   const [carBusy, setCarBusy] = useState(false);
+  const [addingStall, setAddingStall] = useState(false);
+  const [stall, setStall] = useState({ name: "", location: "" });
+  const [stallError, setStallError] = useState("");
+  const [stallBusy, setStallBusy] = useState(false);
+
+  async function saveStall() {
+    setStallError("");
+    setStallBusy(true);
+    try {
+      const r = await createStall(stall);
+      if (!r.ok) return setStallError(r.error);
+      toast.success("Stall added");
+      setAddingStall(false);
+      setStall({ name: "", location: "" });
+      router.refresh();
+    } finally {
+      setStallBusy(false);
+    }
+  }
 
   async function saveCar() {
     setCarError("");
@@ -107,6 +126,9 @@ export function TeamList({ team, joinCode }: { team: TeamEntry[]; joinCode: stri
         <Button onClick={() => setAddingCar(true)} variant="outline" className="mt-2 h-11 w-full rounded-full font-semibold">
           Add vehicle
         </Button>
+        <Button onClick={() => setAddingStall(true)} variant="outline" className="mt-2 h-11 w-full rounded-full font-semibold">
+          Add stall
+        </Button>
       </div>
 
       <Dialog open={adding} onOpenChange={setAdding}>
@@ -146,6 +168,35 @@ export function TeamList({ team, joinCode }: { team: TeamEntry[]; joinCode: stri
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <Dialog open={addingStall} onOpenChange={setAddingStall}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add stall</DialogTitle>
+            <DialogDescription>Stalls take payments for your company and show on your map.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="stall-name">Stall name</Label>
+              <Input id="stall-name" value={stall.name} onChange={(e) => setStall({ ...stall, name: e.target.value })} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="stall-loc">Location</Label>
+              <Input id="stall-loc" value={stall.location} onChange={(e) => setStall({ ...stall, location: e.target.value })} placeholder="Durban CBD" />
+            </div>
+            {stallError ? (
+              <p role="alert" className="text-sm font-medium text-destructive">
+                {stallError}
+              </p>
+            ) : null}
+          </div>
+          <DialogFooter>
+            <Button type="button" onClick={saveStall} disabled={stallBusy || !stall.name.trim()}>
+              Add stall
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={addingCar} onOpenChange={setAddingCar}>
         <DialogContent>
           <DialogHeader>

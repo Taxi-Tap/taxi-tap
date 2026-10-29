@@ -1,6 +1,7 @@
 import { Building2 } from "lucide-react";
 import { AppHeader } from "@/components/personal/app-header";
 import { CompanyCode } from "@/components/owner/company-code";
+import { EditCompany } from "@/components/owner/edit-company";
 import { ORG_TYPE_LABELS } from "@/lib/auth-validation";
 import { getCompany } from "@/server/company";
 
@@ -51,6 +52,7 @@ export default async function CompanyPage() {
           ))}
         </dl>
       </section>
+      <EditCompany name={company.name} location={company.location ?? ""} />
       <CompanyCode initialCode={company.joinCode} />
     </main>
   );

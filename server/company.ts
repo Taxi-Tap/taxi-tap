@@ -132,9 +132,20 @@ export async function getTeamMember(id: string): Promise<TeamDetail | null> {
     };
   }
   const [car] = await db.select().from(vehicles).where(and(eq(vehicles.id, id), eq(vehicles.ownerOrgId, org.id))).limit(1);
-  if (car) return { id: car.id, kind: "vehicle", name: car.model, detail: `${car.registration} • ${car.seats} seats`, sample: false };
+  if (car) {
+    return {
+      id: car.id,
+      kind: "vehicle",
+      name: car.model,
+      detail: `${car.registration} • ${car.seats} seats`,
+      sample: false,
+      vehicle: { registration: car.registration, model: car.model, seats: car.seats },
+    };
+  }
   const [stall] = await db.select().from(stalls).where(and(eq(stalls.id, id), eq(stalls.ownerOrgId, org.id))).limit(1);
-  if (stall) return { id: stall.id, kind: "stall", name: stall.name, detail: stall.location ?? "", sample: false };
+  if (stall) {
+    return { id: stall.id, kind: "stall", name: stall.name, detail: stall.location ?? "", sample: false, stall: { name: stall.name, location: stall.location ?? "" } };
+  }
   return null;
 }
 
@@ -266,19 +277,5 @@ export async function updateRoute(id: string, input: RouteInput): Promise<Action
     // Past payments point at fare bands, so a band that has been paid cannot be deleted.
     return { ok: false, error: "Fares that already have payments cannot be replaced. Add a new route instead." };
   }
-  return { ok: true };
-}
-
-/** Add a taxi to the company so drivers can pick it when they start a shift. */
-export async function createVehicle(input: { registration: string; model: string; seats: number }): Promise<ActionResult> {
-  const { org } = await myOrg();
-  if (!org) return { ok: false, error: "You do not have a company yet." };
-  const registration = input.registration.trim().toUpperCase().replace(/\s+/g, " ");
-  if (!/^[A-Z0-9 ]{4,12}$/.test(registration)) return { ok: false, error: "Enter the number plate, for example ND 41 QZ ZN." };
-  const model = input.model.trim() || "Minibus taxi";
-  if (!Number.isInteger(input.seats) || input.seats < 4 || input.seats > 30) return { ok: false, error: "Seats must be between 4 and 30." };
-  const [taken] = await db.select({ id: vehicles.id }).from(vehicles).where(eq(vehicles.registration, registration)).limit(1);
-  if (taken) return { ok: false, error: "That number plate is already registered." };
-  await db.insert(vehicles).values({ registration, ownerOrgId: org.id, model: model.slice(0, 60), seats: input.seats });
   return { ok: true };
 }

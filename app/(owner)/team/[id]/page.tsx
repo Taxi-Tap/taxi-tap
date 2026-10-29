@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BusFront, Phone, Store, UserRound } from "lucide-react";
 import { AppHeader } from "@/components/personal/app-header";
+import { ManageEntry } from "@/components/owner/manage-entry";
 import { SampleBadge } from "@/components/owner/sample-badge";
 import { Button } from "@/components/ui/button";
 import { rands } from "@/lib/format";
@@ -84,6 +85,7 @@ export default async function TeamProfilePage({ params }: { params: Promise<{ id
           </>
         ) : null}
 
+        {m.sample ? null : <ManageEntry key={m.id} entry={m} />}
         {hasContact ? (
           <Button variant="outline" className="h-12 w-full rounded-full text-base font-semibold" render={<Link href={`/team/${m.id}/contact`} />} nativeButton={false}>
             <Phone /> Contact details

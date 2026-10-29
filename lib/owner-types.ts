@@ -24,6 +24,8 @@ export type TeamDetail = {
   name: string;
   detail: string;
   sample: boolean;
+  vehicle?: { registration: string; model: string; seats: number };
+  stall?: { name: string; location: string };
   person?: { firstName: string; surname: string; phone: string; dob: string; gender: string };
   driver?: {
     vehicle: string;
