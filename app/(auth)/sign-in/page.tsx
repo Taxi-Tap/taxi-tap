@@ -20,7 +20,7 @@ export default function SignInPage() {
     event.preventDefault();
     try {
       window.localStorage.setItem("taxi-tap-demo-session", JSON.stringify({ role, email: email.trim() }));
-      window.location.assign(role === "customer" ? "/wallet" : role === "merchant" ? "/request" : "/dashboard");
+      window.location.assign("/");
     } catch {
       setNotice("Could not start a demo session in this browser. Please enable browser storage and try again.");
     }
